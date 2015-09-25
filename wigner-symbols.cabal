@@ -1,0 +1,55 @@
+name:                wigner-symbols
+version:             1.0.0
+synopsis:            Clebsch-Gordan coefficients and Wigner 3-j, Wigner 6-j,
+                     and Wigner 9-j symbols.
+description:
+  Efficiently calculation of exact Clebsch-Gordan coefficients as well as
+  Wigner 3-j, Wigner 6-j, and Wigner 9-j symbols.
+homepage:            https://github.com/Rufflewind/wigner-symbols
+bug-reports:         https://github.com/Rufflewind/wigner-symbols/issues
+license:             MIT
+license-file:        LICENSE
+author:              Phil Ruffwind
+maintainer:          rf@rufflewind.com
+copyright:           (c) 2015 Phil Ruffwind
+category:            Math
+build-type:          Simple
+cabal-version:       >=1.10
+
+source-repository head
+  type:                git
+  location:            https://github.com/Rufflewind/wigner-symbols
+
+flag llvm
+  description:         Use LLVM
+  default:             False
+
+library
+  exposed-modules:     WignerSymbols
+  build-depends:       base >=4 && <5
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+  if flag(llvm)
+    ghc-options:         -fllvm
+
+test-suite test
+  type:                exitcode-stdio-1.0
+  main-is:             TestMain.hs
+  build-depends:       base
+                     , wigner-symbols
+                     , bytestring >= 0.10 && <1
+                     , cryptonite >=0.7 && <1
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+benchmark bench
+  type:                exitcode-stdio-1.0
+  main-is:             BenchMain.hs
+  build-depends:       base
+                     , wigner-symbols
+                     , criterion >=1.0 && <2
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  ghc-options:         -Wall
