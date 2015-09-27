@@ -1,22 +1,51 @@
 -- TODO: Remove NMR later
 {-# LANGUAGE NoMonomorphismRestriction #-}
 module WignerSymbols.Internal where
+import Control.Applicative
+import Control.Monad (guard)
 import Data.Foldable (foldl')
-import Data.Ratio (Ratio, (%), numerator)
+import Data.Ratio (Ratio, (%), numerator, denominator)
+
+-- | Represents a mathematical expression of the form:
+--
+-- @
+--     s × √(n / d)
+-- @
+--
+-- where
+--
+-- * @s@ is a sign (@+@, @-@, or @0@),
+-- * @n@ is a nonnegative numerator, and
+-- * @d@ is a positive denominator.
 
 newtype SignedSqrtRatio a = SignedSqrtRatio (Ratio a)
                           deriving (Eq, Read, Show)
 
 type SignedSqrtRational = SignedSqrtRatio Integer
 
-splitSignedSqrtRatio :: (Integral a, Num b) => SignedSqrtRatio a -> (b, Ratio a)
-splitSignedSqrtRatio (SignedSqrtRatio x) =
+{-# INLINABLE ssr_split #-}
+ssr_split :: (Integral a, Num b) => SignedSqrtRatio a -> (b, Ratio a)
+ssr_split (SignedSqrtRatio x) =
   (fromIntegral (signum (numerator x)), abs x)
 
-approxSignedSqrtRatio :: (Integral a, Floating b) => SignedSqrtRatio a -> b
-approxSignedSqrtRatio x = case splitSignedSqrtRatio x of
+{-# INLINABLE ssr_approx #-}
+ssr_approx :: (Integral a, Floating b) => SignedSqrtRatio a -> b
+ssr_approx x = case ssr_split x of
   (s, r) -> s * sqrt (realToFrac r)
 
+{-# INLINABLE ssr_numerator #-}
+ssr_numerator :: Integral a => SignedSqrtRatio a -> a
+ssr_numerator (SignedSqrtRatio r) = abs (numerator r)
+
+{-# INLINABLE ssr_denominator #-}
+ssr_denominator :: Integral a => SignedSqrtRatio a -> a
+ssr_denominator (SignedSqrtRatio r) = denominator r
+
+{-# INLINABLE ssr_signum #-}
+ssr_signum :: Integral a => SignedSqrtRatio a -> a
+ssr_signum (SignedSqrtRatio r) = fromIntegral (signum (numerator r))
+
+{-# INLINABLE factorial #-}
 factorial :: Int -> Integer
 factorial = go 1 . toInteger
   -- difference between toInteger first or toInteger per iteration seems negligible
@@ -24,66 +53,83 @@ factorial = go 1 . toInteger
           | n <= 1    = r
           | otherwise = go (r * n) (pred n)
 
+{-# INLINABLE factorial_simple #-}
 -- Difference between _simple and the other one seems negligible
 factorial_simple :: Int -> Integer
 factorial_simple n = product [1 .. toInteger n]
 
+{-# INLINABLE binomial #-}
 binomial :: (Fractional a, Integral b) => a -> b -> a
 binomial = binomial_descending (\ x y -> x / fromIntegral y)
 
+{-# INLINABLE binomialI #-}
 binomialI :: (Integral a, Integral b, Num c) => a -> b -> c
 binomialI n k = fromInteger (binomial_ascendingI (fromIntegral n) (fromIntegral k))
   -- don't use the one below as it's ~twice as slow:
   -- \ n k -> numerator (binomial_descending (%) n k)
 
+{-# INLINABLE binomial_descending #-}
 binomial_descending :: (Num a, Integral b, Num c) => (a -> b -> c) -> a -> b -> c
 binomial_descending divide n k
   | k > 0     = divide n k * binomial_descending divide (n - 1) (k - 1)
   | otherwise = 1
 
+{-# INLINABLE binomial_ascending #-}
 binomial_ascending :: Integral a => a -> a -> a
 binomial_ascending = go 1 1
   where go r i n k
           | i > k     = r
           | otherwise = go (r * n `quot` i) (succ i) (pred n) k
 
+{-# INLINABLE binomial_ascendingI #-}
 binomial_ascendingI :: Int -> Int -> Integer
 binomial_ascendingI = go 1 1
   where go r i n k
           | i > k     = r
           | otherwise = go (r * toInteger n `quot` toInteger i) (succ i) (pred n) k
 
+{-# INLINABLE minusOnePow #-}
 minusOnePow :: Integral a => a -> a
 minusOnePow n = 1 - n `mod` 2 * 2
 
 -- note: -fllvm makes this faster (~10%)
 
+{-# INLINABLE triangleCondition #-}
 triangleCondition :: (Num a, Ord a) => a -> a -> a -> Bool
 triangleCondition a b c = abs (a - b) <= c && c <= a + b
 
 -- | Compute the sign and the square of a Clebsch-Gordan coefficient.
---   Input arguments are /twice/ the usual quantum numbers.
-clebschGordanSq :: Int -> Int -> Int -> Int -> Int -> Int -> SignedSqrtRational
+--   Input arguments are //twice// the usual quantum numbers.
+{-# INLINABLE clebschGordan #-}
+clebschGordan :: (Int, Int, Int, Int, Int, Int) -> Double
+clebschGordan = ssr_approx . clebschGordanSq
+
+-- | Compute the sign and the square of a Clebsch-Gordan coefficient.
+{-# INLINABLE clebschGordanSq #-}
+clebschGordanSq :: (Int, Int, Int, Int, Int, Int)
+                   -- ^ @(j1, m1, j2, m2, j3, m3)@
+                -> SignedSqrtRational
 clebschGordanSq = clebschGordanSq_b
 
-clebschGordanSq_b :: Int -> Int -> Int -> Int -> Int -> Int -> SignedSqrtRational
-clebschGordanSq_b tj1 tm1 tj2 tm2 tj12 tm12 =
+{-# INLINABLE clebschGordanSq_b #-}
+clebschGordanSq_b :: (Int, Int, Int, Int, Int, Int) -> SignedSqrtRational
+clebschGordanSq_b (tj1, tm1, tj2, tm2, tj12, tm12) =
   SignedSqrtRatio (z * fromIntegral (tj12 + 1))
-  where SignedSqrtRatio z = wigner3jSqRaw tj1 tm1 tj2 tm2 tj12 (-tm12)
+  where SignedSqrtRatio z = wigner3jSqRaw (tj1, tm1, tj2, tm2, tj12, -tm12)
 
-wigner3jSq :: Int -> Int -> Int -> Int -> Int -> Int -> SignedSqrtRational
-wigner3jSq tj1 tm1 tj2 tm2 tj3 tm3 = SignedSqrtRatio (s * z)
+{-# INLINABLE wigner3j #-}
+wigner3j :: (Int, Int, Int, Int, Int, Int) -> Double
+wigner3j = ssr_approx . wigner3jSq
+
+{-# INLINABLE wigner3jSq #-}
+wigner3jSq :: (Int, Int, Int, Int, Int, Int) -> SignedSqrtRational
+wigner3jSq (tj1, tm1, tj2, tm2, tj3, tm3) = SignedSqrtRatio (s * z)
   where s = fromIntegral (minusOnePow ((tj1 - tj2 - tm3) `quot` 2))
-        SignedSqrtRatio z = wigner3jSqRaw tj1 tm1 tj2 tm2 tj3 tm3
+        SignedSqrtRatio z = wigner3jSqRaw (tj1, tm1, tj2, tm2, tj3, tm3)
 
-{-# SPECIALIZE wigner3j :: Int -> Int -> Int -> Int -> Int -> Int -> Double #-}
-{-# SPECIALIZE wigner3j :: Int -> Int -> Int -> Int -> Int -> Int -> Float #-}
-wigner3j :: Floating a => Int -> Int -> Int -> Int -> Int -> Int -> a
-wigner3j tj1 tm1 tj2 tm2 tj3 tm3 =
-  approxSignedSqrtRatio (wigner3jSq tj1 tm1 tj2 tm2 tj3 tm3)
-
-wigner3jSqRaw :: Int -> Int -> Int -> Int -> Int -> Int -> SignedSqrtRational
-wigner3jSqRaw tj1 tm1 tj2 tm2 tj3 tm3
+{-# INLINABLE wigner3jSqRaw #-}
+wigner3jSqRaw :: (Int, Int, Int, Int, Int, Int) -> SignedSqrtRational
+wigner3jSqRaw (tj1, tm1, tj2, tm2, tj3, tm3)
   | satisfiesSelectionRule = SignedSqrtRatio z
   | otherwise              = SignedSqrtRatio 0
   where
@@ -141,9 +187,12 @@ wigner3jSqRaw tj1 tm1 tj2 tm2 tj3 tm3
 
     jsm1 = (tj1 - tm1) `quot` 2
 
-clebschGordanSq_a :: Int -> Int -> Int -> Int -> Int -> Int -> SignedSqrtRational
-clebschGordanSq_a tj1 tm1 tj2 tm2 tj12 tm12
-  | conservationLaw && triangleCondition tj1 tj2 tj12 && jParity = SignedSqrtRatio (sign * surd)
+{-# INLINABLE clebschGordanSq_a #-}
+clebschGordanSq_a :: (Int, Int, Int, Int, Int, Int) -> SignedSqrtRational
+clebschGordanSq_a (tj1, tm1, tj2, tm2, tj12, tm12)
+  | conservationLaw &&
+    triangleCondition tj1 tj2 tj12 &&
+    jParity = SignedSqrtRatio (sign * surd)
   | otherwise = SignedSqrtRatio 0
   where
 
@@ -221,18 +270,25 @@ clebschGordanSq_a tj1 tm1 tj2 tm2 tj12 tm12
             facHalf(tj1 + tj2 + tj12 + 2)
         ) * r ^ (2 :: Int)
 
--- | Compute the sign and the square of a Clebsch-Gordan coefficient.
---   Input arguments are //twice// the usual quantum numbers.
-{-# SPECIALIZE clebschGordan :: Int -> Int -> Int -> Int -> Int -> Int -> Double #-}
-{-# SPECIALIZE clebschGordan :: Int -> Int -> Int -> Int -> Int -> Int -> Float #-}
-clebschGordan :: Floating a => Int -> Int -> Int -> Int -> Int -> Int -> a
-clebschGordan tj1 tm1 tj2 tm2 tj12 tm12 =
-  approxSignedSqrtRatio (clebschGordanSq tj1 tm1 tj2 tm2 tj12 tm12)
-
-getTj12s :: (Enum a, Num a) => a -> a -> [a]
-getTj12s tj1 tj2 = [tj12min, tj12min + 2 .. tj12max]
+{-# INLINABLE getTj12s #-}
+getTj12s :: (Enum a, Num a) => (a, a) -> [a]
+getTj12s (tj1, tj2) = [tj12min, tj12min + 2 .. tj12max]
   where tj12min = abs (tj1 - tj2)
         tj12max = tj1 + tj2
 
+{-# INLINABLE getTms #-}
 getTms :: (Enum a, Num a) => a -> [a]
 getTms tj = [-tj, -tj + 2 .. tj]
+
+{-# INLINABLE get3tjms #-}
+get3tjms :: Int -> [(Int, Int, Int, Int, Int, Int)]
+get3tjms tjMax = do
+  tj1  <- [0 .. tjMax]
+  tj2  <- [0 .. tjMax]
+  tj12 <- getTj12s (tj1, tj2)
+  guard (tj12 <= tjMax)
+  tm1  <- getTms tj1
+  tm2  <- getTms tj2
+  let tm12 = tm1 + tm2
+  guard (abs tm12 <= tj12)
+  pure (tj1, tm1, tj2, tm2, tj12, tm12)
