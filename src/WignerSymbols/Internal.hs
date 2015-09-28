@@ -106,8 +106,17 @@ minusOnePow n = 1 - n `mod` 2 * 2
 -- note: -fllvm makes this faster (~10%)
 
 {-# INLINABLE triangleCondition #-}
+-- Int -> Int -> Int -> Bool
 triangleCondition :: (Num a, Ord a) => a -> a -> a -> Bool
 triangleCondition a b c = abs (a - b) <= c && c <= a + b
+
+{-# INLINABLE triangleConditionI #-}
+--triangleConditionI :: Int -> Int -> Int -> Bool
+triangleConditionI :: Integral a => a -> a -> a -> Bool
+triangleConditionI a b c =
+  c - abs (a - b) >= 0 &&
+  a + b - c >= 0 &&
+  (a + b - c) `quot` 2 == 0
 
 -- | Calculate a Clebsch-Gordan coefficient.
 {-# INLINABLE clebschGordan #-}
@@ -311,3 +320,51 @@ get3tjms tjMax = do
   let tm3 = -(tm1 + tm2)
   guard (abs tm3 <= tj3)
   pure (tj1, tm1, tj2, tm2, tj3, tm3)
+
+wigner6jSq :: (Int, Int, Int, Int, Int, Int) -> SignedSqrtRational
+wigner6jSq (tja, tjb, tjc, tjd, tje, tjf)
+  | satisfiesSelectionRule = SignedSqrtRatio z
+  | otherwise              = SignedSqrtRatio 0
+  where
+
+    satisfiesSelectionRule =
+      triangleConditionI tja tjb tjc &&
+      triangleConditionI tja tje tjf &&
+      triangleConditionI tjd tjb tjf &&
+      triangleConditionI tjd tje tjc
+
+    z = z1 * fromInteger (z2 ^ (2 :: Int))
+
+    z1 =
+      triangleFactor (tja, tje, tjf) *
+      triangleFactor (tjd, tjb, tjf) *
+      triangleFactor (tjd, tje, tjc) /
+      triangleFactor (tja, tjb, tjc)
+
+    z2 =
+      sum [ toInteger (minusOnePow k)
+          * binomialI (k + 1) (k - (tja + tjb + tjc) `quot` 2)
+          * binomialI ((tjc - tja + tjb) `quot` 2) (k - (tja + tje + tjf) `quot` 2)
+          * binomialI ((tja - tjb + tjc) `quot` 2) (k - (tjd + tjb + tjf) `quot` 2)
+          * binomialI ((tjb - tjc + tja) `quot` 2) (k - (tjd + tje + tjc) `quot` 2)
+          | k <- [kmin .. kmax] ]
+
+    kmin =
+      maximum
+      [ tja + tjb + tjc
+      , tjd + tje + tjc
+      , tjd + tjb + tjf
+      , tja + tje + tjf ]
+
+    kmax =
+      minimum
+      [ tja + tjd + tjb + tje
+      , tjb + tje + tjc + tjf
+      , tja + tjd + tjc + tjf ]
+
+triangleFactor :: (Int, Int, Int) -> Rational
+triangleFactor (tja, tjb, tjc) =
+  factorial ((tja - tjb + tjc) `quot` 2) *
+  factorial ((tjb - tjc + tja) `quot` 2) *
+  factorial ((tjc - tja + tjb) `quot` 2) %
+  factorial ((tja + tjb + tjc) `quot` 2 + 1)

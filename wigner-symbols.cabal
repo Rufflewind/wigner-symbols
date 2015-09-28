@@ -3,8 +3,8 @@ version:             1.0.0
 synopsis:            Clebsch-Gordan coefficients and Wigner 3-j, Wigner 6-j,
                      and Wigner 9-j symbols.
 description:
-  Efficiently calculation of exact Clebsch-Gordan coefficients as well as
-  Wigner 3-j, Wigner 6-j, and Wigner 9-j symbols.
+  Calculation of exact Clebsch-Gordan coefficients as well as Wigner 3-j,
+  Wigner 6-j, and Wigner 9-j symbols.
 homepage:            https://github.com/Rufflewind/wigner-symbols
 bug-reports:         https://github.com/Rufflewind/wigner-symbols/issues
 license:             MIT
