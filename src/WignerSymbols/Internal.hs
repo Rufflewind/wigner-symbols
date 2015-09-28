@@ -1,5 +1,5 @@
 -- TODO: Remove NMR later
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE BangPatterns, CPP #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 module WignerSymbols.Internal where
 #if !MIN_VERSION_base(4, 8, 0)
@@ -51,11 +51,14 @@ ssr_signum (SignedSqrtRatio r) = fromIntegral (signum (numerator r))
 
 {-# INLINABLE factorial #-}
 factorial :: Int -> Integer
-factorial = go 1 . toInteger
+factorial = go 1
   -- difference between toInteger first or toInteger per iteration seems negligible
   where go r n
           | n <= 1    = r
-          | otherwise = go (r * n) (pred n)
+          | otherwise =
+              let !r' = r * toInteger n
+                  !n' = n - 1
+              in go r' n'
 
 {-# INLINABLE factorial_simple #-}
 -- Difference between _simple and the other one seems negligible
@@ -66,38 +69,35 @@ factorial_simple n = product [1 .. toInteger n]
 binomial :: (Fractional a, Integral b) => a -> b -> a
 binomial = binomial_descending (\ x y -> x / fromIntegral y)
 
-{-# INLINABLE binomialI #-}
-binomialI :: (Integral a, Integral b, Num c) => a -> b -> c
-binomialI n k = fromInteger (binomial_ascendingI (fromIntegral n) (fromIntegral k))
-  -- don't use the one below as it's ~twice as slow:
-  -- \ n k -> numerator (binomial_descending (%) n k)
-
+-- binomial_descending is about twice as slow as the binomialI
+-- \ n k -> numerator (binomial_descending (%) n k)
 {-# INLINABLE binomial_descending #-}
 binomial_descending :: (Num a, Integral b, Num c) => (a -> b -> c) -> a -> b -> c
 binomial_descending divide n k
   | k > 0     = divide n k * binomial_descending divide (n - 1) (k - 1)
   | otherwise = 1
 
-{-# INLINABLE binomial_ascending #-}
-binomial_ascending :: Integral a => a -> a -> a
-binomial_ascending = go 1 1
+{-# INLINABLE binomialI #-}
+binomialI :: Int -> Int -> Integer
+binomialI = go 1 1
   where go r i n k
           | i > k     = r
-          | otherwise = go (r * n `quot` i) (succ i) (pred n) k
-
-{-# INLINABLE binomial_ascendingI #-}
-binomial_ascendingI :: Int -> Int -> Integer
-binomial_ascendingI = go 1 1
-  where go r i n k
-          | i > k     = r
-          | otherwise = go (r * toInteger n `quot` toInteger i) (succ i) (pred n) k
+          | otherwise =
+              let !r' = r * toInteger n `quot` toInteger i
+                  !i' = i + 1
+                  !n' = n - 1
+              in go r' i' n' k
 
 {-# INLINABLE fallingFactorialI #-}
 fallingFactorialI :: Int -> Int -> Integer
 fallingFactorialI = go 1 1
   where go r i n k
           | i > k     = r
-          | otherwise = go (r * toInteger n) (succ i) (pred n) k
+          | otherwise =
+              let !r' = r * toInteger n
+                  !i' = i + 1
+                  !n' = n - 1
+              in go r' i' n' k
 
 {-# INLINABLE minusOnePow #-}
 minusOnePow :: Integral a => a -> a
@@ -120,11 +120,7 @@ clebschGordan = ssr_approx . clebschGordanSq
 clebschGordanSq :: (Int, Int, Int, Int, Int, Int)
                 -- ^ @(tj1, tm1, tj2, tm2, tj12, tm12)@.
                 -> SignedSqrtRational
-clebschGordanSq = clebschGordanSq_b
-
-{-# INLINABLE clebschGordanSq_b #-}
-clebschGordanSq_b :: (Int, Int, Int, Int, Int, Int) -> SignedSqrtRational
-clebschGordanSq_b (tj1, tm1, tj2, tm2, tj12, tm12) =
+clebschGordanSq (tj1, tm1, tj2, tm2, tj12, tm12) =
   SignedSqrtRatio (z * fromIntegral (tj12 + 1))
   where SignedSqrtRatio z = wigner3jSqRaw (tj1, tm1, tj2, tm2, tj12, -tm12)
 
@@ -143,10 +139,10 @@ wigner3jSq (tj1, tm1, tj2, tm2, tj3, tm3) = SignedSqrtRatio (s * z)
   where s = fromIntegral (minusOnePow ((tj1 - tj2 - tm3) `quot` 2))
         SignedSqrtRatio z = wigner3jSqRaw (tj1, tm1, tj2, tm2, tj3, tm3)
 
-{-# INLINABLE wigner3jSqRaw #-}
 -- | This uses the formula described in
 -- Wei1999 doi:10.1016/S0010-4655(99)00232-5
 -- http://meghnad.iucaa.ernet.in/~tarun/pprnt/compute/ClebADKL.pdf
+{-# INLINABLE wigner3jSqRaw #-}
 wigner3jSqRaw :: (Int, Int, Int, Int, Int, Int) -> SignedSqrtRational
 wigner3jSqRaw (tj1, tm1, tj2, tm2, tj3, tm3)
   | satisfiesSelectionRule = SignedSqrtRatio z
@@ -181,19 +177,20 @@ wigner3jSqRaw (tj1, tm1, tj2, tm2, tj3, tm3)
 
     z3 :: Integer
     z3 | kmin > kmax = 0
-       | otherwise   = r
+       | otherwise   =
+           let !c0 = toInteger (minusOnePow kmin)
+                   * binomialI jjj2 kmin
+                   * binomialI jjj1 (jsm1 - kmin)
+                   * binomialI jjj3 (jm2 - kmin)
+           in fst (foldl' f (c0, c0) [succ kmin .. kmax])
+
+    f (s, c) k = (s', -c')
       where
-        (r, _) = foldl' f (c0, c0) [succ kmin .. kmax]
-        c0 = toInteger (minusOnePow kmin) *
-             binomialI jjj2 kmin *
-             binomialI jjj1 (jsm1 - kmin) *
-             binomialI jjj3 (jm2 - kmin)
-        f (s, c) k =
-          let c' = c
-                 * toInteger (jjj2 - k + 1) `quot` toInteger k
-                 * toInteger (jsm1 - k + 1) `quot` toInteger (jjj1 - (jsm1 - k))
-                 * toInteger (jm2 - k + 1) `quot` toInteger (jjj3 - (jm2 - k))
-          in (s - c', -c')
+        !c' = c
+            * toInteger (jjj2 - k + 1) `quot` toInteger k
+            * toInteger (jsm1 - k + 1) `quot` toInteger (jjj1 - (jsm1 - k))
+            * toInteger (jm2 - k + 1) `quot` toInteger (jjj3 - (jm2 - k))
+        !s' = s - c'
 
     kmin = maximum [0, tj1 - tj3 + tm2, tj2 - tj3 - tm1] `quot` 2
     kmax = minimum [jjj2, jsm1, jm2]
@@ -209,9 +206,9 @@ wigner3jSqRaw (tj1, tm1, tj2, tm2, tj3, tm3)
 
     jsm1 = (tj1 - tm1) `quot` 2
 
-{-# INLINABLE clebschGordanSq_a #-}
-clebschGordanSq_a :: (Int, Int, Int, Int, Int, Int) -> SignedSqrtRational
-clebschGordanSq_a (tj1, tm1, tj2, tm2, tj12, tm12)
+{-# INLINABLE clebschGordanSqSlow #-}
+clebschGordanSqSlow :: (Int, Int, Int, Int, Int, Int) -> SignedSqrtRational
+clebschGordanSqSlow (tj1, tm1, tj2, tm2, tj12, tm12)
   | conservationLaw &&
     triangleCondition tj1 tj2 tj12 &&
     jParity = SignedSqrtRatio (sign * surd)
@@ -305,12 +302,12 @@ getTms tj = [-tj, -tj + 2 .. tj]
 {-# INLINABLE get3tjms #-}
 get3tjms :: Int -> [(Int, Int, Int, Int, Int, Int)]
 get3tjms tjMax = do
-  tj1  <- [0 .. tjMax]
-  tj2  <- [0 .. tjMax]
+  tj1 <- [0 .. tjMax]
+  tj2 <- [0 .. tjMax]
   tj3 <- getTj12s (tj1, tj2)
   guard (tj3 <= tjMax)
-  tm1  <- getTms tj1
-  tm2  <- getTms tj2
+  tm1 <- getTms tj1
+  tm2 <- getTms tj2
   let tm3 = -(tm1 + tm2)
   guard (abs tm3 <= tj3)
   pure (tj1, tm1, tj2, tm2, tj3, tm3)
