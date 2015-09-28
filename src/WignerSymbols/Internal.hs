@@ -144,6 +144,9 @@ wigner3jSq (tj1, tm1, tj2, tm2, tj3, tm3) = SignedSqrtRatio (s * z)
         SignedSqrtRatio z = wigner3jSqRaw (tj1, tm1, tj2, tm2, tj3, tm3)
 
 {-# INLINABLE wigner3jSqRaw #-}
+-- | This uses the formula described in
+-- Wei1999 doi:10.1016/S0010-4655(99)00232-5
+-- http://meghnad.iucaa.ernet.in/~tarun/pprnt/compute/ClebADKL.pdf
 wigner3jSqRaw :: (Int, Int, Int, Int, Int, Int) -> SignedSqrtRational
 wigner3jSqRaw (tj1, tm1, tj2, tm2, tj3, tm3)
   | satisfiesSelectionRule = SignedSqrtRatio z
