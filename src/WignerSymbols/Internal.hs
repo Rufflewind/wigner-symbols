@@ -1,8 +1,12 @@
 -- TODO: Remove NMR later
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 module WignerSymbols.Internal where
-import Control.Applicative
+#if !MIN_VERSION_base(4, 8, 0)
+import Control.Applicative (pure)
+#endif
 import Control.Monad (guard)
+import Data.List (sort)
 import Data.Foldable (foldl')
 import Data.Ratio (Ratio, (%), numerator, denominator)
 
@@ -88,6 +92,13 @@ binomial_ascendingI = go 1 1
           | i > k     = r
           | otherwise = go (r * toInteger n `quot` toInteger i) (succ i) (pred n) k
 
+{-# INLINABLE fallingFactorialI #-}
+fallingFactorialI :: Int -> Int -> Integer
+fallingFactorialI = go 1 1
+  where go r i n k
+          | i > k     = r
+          | otherwise = go (r * toInteger n) (succ i) (pred n) k
+
 {-# INLINABLE minusOnePow #-}
 minusOnePow :: Integral a => a -> a
 minusOnePow n = 1 - n `mod` 2 * 2
@@ -98,16 +109,16 @@ minusOnePow n = 1 - n `mod` 2 * 2
 triangleCondition :: (Num a, Ord a) => a -> a -> a -> Bool
 triangleCondition a b c = abs (a - b) <= c && c <= a + b
 
--- | Compute the sign and the square of a Clebsch-Gordan coefficient.
---   Input arguments are //twice// the usual quantum numbers.
+-- | Calculate a Clebsch-Gordan coefficient.
 {-# INLINABLE clebschGordan #-}
-clebschGordan :: (Int, Int, Int, Int, Int, Int) -> Double
+clebschGordan :: (Int, Int, Int, Int, Int, Int)
+              -- ^ @(tj1, tm1, tj2, tm2, tj12, tm12)@.
+              -> Double
 clebschGordan = ssr_approx . clebschGordanSq
 
--- | Compute the sign and the square of a Clebsch-Gordan coefficient.
 {-# INLINABLE clebschGordanSq #-}
 clebschGordanSq :: (Int, Int, Int, Int, Int, Int)
-                   -- ^ @(j1, m1, j2, m2, j3, m3)@
+                -- ^ @(tj1, tm1, tj2, tm2, tj12, tm12)@.
                 -> SignedSqrtRational
 clebschGordanSq = clebschGordanSq_b
 
@@ -117,12 +128,17 @@ clebschGordanSq_b (tj1, tm1, tj2, tm2, tj12, tm12) =
   SignedSqrtRatio (z * fromIntegral (tj12 + 1))
   where SignedSqrtRatio z = wigner3jSqRaw (tj1, tm1, tj2, tm2, tj12, -tm12)
 
+-- | Calculate a Wigner 3-j symbol.
 {-# INLINABLE wigner3j #-}
-wigner3j :: (Int, Int, Int, Int, Int, Int) -> Double
+wigner3j :: (Int, Int, Int, Int, Int, Int)
+         -- ^ @(tj1, tm1, tj2, tm2, tj3, tm3)@.
+         -> Double
 wigner3j = ssr_approx . wigner3jSq
 
 {-# INLINABLE wigner3jSq #-}
-wigner3jSq :: (Int, Int, Int, Int, Int, Int) -> SignedSqrtRational
+wigner3jSq :: (Int, Int, Int, Int, Int, Int)
+           -- ^ @(tj1, tm1, tj2, tm2, tj3, tm3)@.
+           -> SignedSqrtRational
 wigner3jSq (tj1, tm1, tj2, tm2, tj3, tm3) = SignedSqrtRatio (s * z)
   where s = fromIntegral (minusOnePow ((tj1 - tj2 - tm3) `quot` 2))
         SignedSqrtRatio z = wigner3jSqRaw (tj1, tm1, tj2, tm2, tj3, tm3)
@@ -285,10 +301,10 @@ get3tjms :: Int -> [(Int, Int, Int, Int, Int, Int)]
 get3tjms tjMax = do
   tj1  <- [0 .. tjMax]
   tj2  <- [0 .. tjMax]
-  tj12 <- getTj12s (tj1, tj2)
-  guard (tj12 <= tjMax)
+  tj3 <- getTj12s (tj1, tj2)
+  guard (tj3 <= tjMax)
   tm1  <- getTms tj1
   tm2  <- getTms tj2
-  let tm12 = tm1 + tm2
-  guard (abs tm12 <= tj12)
-  pure (tj1, tm1, tj2, tm2, tj12, tm12)
+  let tm3 = -(tm1 + tm2)
+  guard (abs tm3 <= tj3)
+  pure (tj1, tm1, tj2, tm2, tj3, tm3)

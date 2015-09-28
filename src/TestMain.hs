@@ -1,9 +1,9 @@
 {-# LANGUAGE CPP #-}
 module Main (main) where
-import Data.Foldable (for_)
 #if !MIN_VERSION_base(4, 8, 0)
 import Data.Functor ((<$>))
 #endif
+import Data.Foldable (for_)
 import Data.List (intercalate)
 import Data.Monoid ((<>))
 import System.Exit (exitFailure)
@@ -19,10 +19,10 @@ hexMD5 s = show (hashlazy s :: Digest MD5)
 main :: IO ()
 main = do
   withFile filename WriteMode $ \ h ->
-    for_ (get3tjms tjMax) $ \ (tj1, tm1, tj2, tm2, tj12, tm12) ->
-      let r = clebschGordanSq (tj1, tm1, tj2, tm2, tj12, tm12) in
+    for_ (get3tjms tjMax) $ \ (tj1, tm1, tj2, tm2, tj3, tm3) ->
+      let r = clebschGordanSq (tj1, tm1, tj2, tm2, tj3, -tm3) in
       hPutStrLn h $
-        intercalate "\t" (show <$> [tj1, tm1, tj2, tm2, tj12, tm12]) <>
+        intercalate "\t" (show <$> [tj1, tm1, tj2, tm2, tj3, -tm3]) <>
         "\t" <> show (ssr_signum r * ssr_numerator r) <>
         "/" <> show (ssr_denominator r)
   newHash <- hexMD5 <$> ByteStringL.readFile filename
