@@ -165,7 +165,10 @@ wigner3jSqRaw (tj1, tm1, tj2, tm2, tj3, tm3)
 
     -- merging z1 and z2 makes it slower
     z1 :: Rational
-    z1 = factorial jjj1 * factorial jjj2 * factorial jjj3 % factorial (succ jjj)
+    z1 = factorial jjja * factorial jjjb %
+         -- using fallingFactorialI gives ~10% improvement for large j
+         fallingFactorialI (succ jjj) (succ jjj - jjjc)
+      where [jjja, jjjb, jjjc] = sort [jjj1, jjj2, jjj3]
 
     z2 :: Rational
     z2 =
