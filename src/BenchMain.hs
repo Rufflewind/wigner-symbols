@@ -9,7 +9,7 @@ import Control.Monad.ST (runST)
 import Data.Foldable (for_)
 import Data.Monoid ((<>))
 import Data.Vector (Vector)
-import Data.Vector.Generic.Mutable (MVector)
+import Data.Vector.Generic (Mutable)
 import Data.Vector.Unboxed (Unbox)
 import qualified Data.Vector.Generic as Vector
 import qualified Data.Vector.Generic.Mutable as MVector
@@ -18,86 +18,129 @@ import System.Random (randomRIO)
 import Criterion.Main
 import WignerSymbols
 import WignerSymbols.Internal
+
 type Vector_Unboxed a = Vector_Unboxed.Vector a
 
-mvector_modify :: (PrimMonad m, MVector v a) =>
-                  v (PrimState m) a -> (a -> a) -> Int -> m ()
-#if MIN_VERSION_vector(0, 11, 0)
-mvector_modify = MVector.modify
-#else
-mvector_modify v f i = do
-  x <- MVector.read v i
-  MVector.write v i (f x)
-#endif
+mvector_traverse :: (PrimMonad m, MVector.MVector v a) =>
+                    Int -> (a -> m a) -> v (PrimState m) a -> m ()
+mvector_traverse i f v = MVector.read v i >>= f >>= MVector.write v i
 
-type ThreeTjm = (Int, Int, Int, Int, Int, Int)
-
-type Partition a = (Vector_Unboxed Int, Vector_Unboxed a)
+------------------------------------------------------------------------------
 
 main :: IO ()
 main =
   defaultMain
-  [ env (pure (getTable3tjms tableTjMax)) $ \ ~table3tjms ->
+  [ envTable 25 getTable3tjms $ \ t ->
     bgroup ""
-    [ bgroup "cg" (bench3tjms table3tjms flippedClebschGordan)
-    , bgroup "3j" (bench3tjms table3tjms wigner3j)
+    [ bgroup "cg" (benchPart 5 t flippedClebschGordan)
+    , bgroup "w3j" (benchPart 5 t wigner3j)
     ]
+  , envTable 20 getTable6tjs $ \ t ->
+    bgroup "w6j" (benchPart 5 t wigner6jSq)
   , bench "cg.tj=8" (whnf clebschGordanSq (8, 0, 8, 0, 8, 0))
-  , bench "cg.tj=50" (whnf clebschGordanSq (50, 0, 50, 0, 50, 0))
   , bench "cg.tj=100" (whnf clebschGordanSq (100, 0, 100, 0, 100, 0))
+  , bench "w6j.tj=8" (whnf wigner6jSq (10, 10, 10, 10, 10, 10))
   ]
-  where
 
-    tableTjMax = 25
+------------------------------------------------------------------------------
 
-    tjStep = 5
-
-    bench3tjms table3tjms f =
-      [ let tjMin = tjMax - tjStep
-            iRange = indexRange3tjm table3tjms tjMin tjMax in
-        bench ("tj=" <> show tjMin <> ".." <> show tjMax)
-              (whnfIO (f <$> random3tjm table3tjms iRange))
-      | tjMax <- [tjStep, tjStep * 2 .. tableTjMax] ]
-
-flippedClebschGordan :: ThreeTjm -> Double
-flippedClebschGordan (tj1, tm1, tj2, tm2, tj3, tm3) =
-  clebschGordan (tj1, tm1, tj2, tm2, tj3, -tm3)
+type Partition a = (Vector_Unboxed Int, Vector_Unboxed a)
 
 categorize :: forall a . Unbox a => Int -> [a] -> (a -> Int) -> Partition a
 categorize numCategories xs classify = (offsets, table)
   where
 
-    tableL :: Vector [a]
-    tableL = runST $ do
-      mtableL <- MVector.replicate numCategories []
-      for_ xs $ \ x ->
-        mvector_modify mtableL (x :) (classify x)
-      Vector.freeze mtableL
+    defaultCap = 25
 
-    tableG :: Vector (Vector_Unboxed a)
-    tableG = Vector.fromList <$> tableL
+    tableS :: Vector (Vector_Unboxed a)
+    tableS = runST $ do
+      mtableG <- MVector.replicateM numCategories (gmv_new defaultCap)
+      for_ xs $ \ x ->
+        mvector_traverse (classify x) (`gmv_append` x) mtableG
+      tableG <- Vector.freeze mtableG
+      Vector.mapM gmv_unsafeFreeze tableG
 
     table :: Vector_Unboxed a
-    table  = Vector.concat (Vector.toList tableG)
+    table  = Vector.concat (Vector.toList tableS)
 
     offsetsB :: Vector Int
-    offsetsB = Vector.postscanl' (+) 0 (Vector.length <$> tableG)
+    offsetsB = Vector.postscanl' (+) 0 (Vector.length <$> tableS)
 
     offsets :: Vector_Unboxed Int
     offsets  = Vector.convert offsetsB
 
-indexRange3tjm :: Partition ThreeTjm -> Int -> Int -> (Int, Int)
-indexRange3tjm (offsets, _) tjMin tjMax = (lowerIndex, upperIndex)
+partRange :: Partition a -> (Int, Int) -> (Int, Int)
+partRange (offsets, _) (partMin, partMax) = (lowerIndex, upperIndex)
   where
-    lowerIndex | tjMin == 0 = 0
-               | otherwise  = offsets Vector.! (tjMin - 1)
-    upperIndex = offsets Vector.! tjMax - 1
+    lowerIndex | partMin == 0 = 0
+               | otherwise    = offsets Vector.! (partMin - 1)
+    upperIndex = offsets Vector.! partMax - 1
 
-random3tjm :: Partition ThreeTjm -> (Int, Int) -> IO ThreeTjm
-random3tjm (_, indices) indexRange =
-  (indices Vector.!) <$> randomRIO indexRange
+randomPartElem :: Unbox a => Partition a -> (Int, Int) -> IO a
+randomPartElem (_, indices) range =
+  (indices Vector.!) <$> randomRIO range
 
-getTable3tjms :: Int -> Partition ThreeTjm
+benchPart :: Unbox a => Int -> (Int, Partition a) -> (a -> b) -> [Benchmark]
+benchPart tjStep (tableTjMax, inputTable) f =
+  [ let tjMin = tjMax - tjStep
+        range = partRange inputTable (tjMin, tjMax) in
+    bench ("tj=" <> show tjMin <> ".." <> show tjMax)
+          (whnfIO (f <$> randomPartElem inputTable range))
+  | tjMax <- [tjStep, tjStep * 2 .. tableTjMax] ]
+
+------------------------------------------------------------------------------
+
+type Growable v =
+  ( Int -- actual length
+  , v )
+
+gmv_new :: (PrimMonad m, MVector.MVector v a) =>
+           Int -> m (Growable (v (PrimState m) a))
+gmv_new cap = do
+  v <- MVector.new cap
+  pure (0, v)
+
+gmv_append :: (PrimMonad m, MVector.MVector v a) =>
+              Growable (v (PrimState m) a)
+           -> a
+           -> m (Growable (v (PrimState m) a))
+gmv_append (len, v) x = do
+  v' <-
+    let !cap = MVector.length v in
+    if len < cap
+      then pure v
+      else MVector.grow v (cap * 2)
+  MVector.write v' len x
+  pure (len + 1, v')
+
+gmv_unsafeFreeze :: (PrimMonad m, Vector.Vector v a) =>
+                    Growable (Mutable v (PrimState m) a) -> m (v a)
+gmv_unsafeFreeze (len, v) = Vector.unsafeFreeze (MVector.slice 0 len v)
+
+------------------------------------------------------------------------------
+
+type SixTk = (Int, Int, Int, Int, Int, Int)
+
+flippedClebschGordan :: SixTk -> Double
+flippedClebschGordan (tj1, tm1, tj2, tm2, tj3, tm3) =
+  clebschGordan (tj1, tm1, tj2, tm2, tj3, -tm3)
+
+getTable3tjms :: Int -> Partition SixTk
 getTable3tjms tableTjMax =
   categorize (tableTjMax + 1) (get3tjms tableTjMax) $
-  \ (tj1, _, tj2, _, tj3, _) -> maximum [tj1, tj2, tj3]
+  \ (tj1, _, tj2, _, tj3, _) ->
+    maximum [tj1, tj2, tj3]
+
+getTable6tjs :: Int -> Partition SixTk
+getTable6tjs tableTjMax =
+  categorize (tableTjMax + 1) (get6tjs tableTjMax) $
+  \ (tj1, tj2, tj3, tj4, tj5, tj6) ->
+    maximum [tj1, tj2, tj3, tj4, tj5, tj6]
+
+envTable :: Int
+         -> (Int -> Partition SixTk)
+         -> ((Int, Partition SixTk) -> Benchmark)
+         -> Benchmark
+envTable tableTjMax getTable benchmark =
+  env (pure (getTable tableTjMax)) $
+  \ e -> benchmark (tableTjMax, e)
