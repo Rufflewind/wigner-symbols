@@ -58,7 +58,7 @@ main = do
         "\t" <> show (ssr_signum r * ssr_numerator r) <>
         "/" <> show (ssr_denominator r)
 
-  checkResults knownHashes_cg 15 "w3j" $ \ tjMax write ->
+  checkResults knownHashes_cg 15 "cgw" $ \ tjMax write ->
     for_ (get3tjms tjMax) $ \ (tj1, tm1, tj2, tm2, tj3, tm3) ->
       let SignedSqrtRatio wr = wigner3jSq (tj1, tm1, tj2, tm2, tj3, tm3)
           r = wr
@@ -71,7 +71,9 @@ main = do
 
 knownHashes_cg :: [(Int, String)]
 knownHashes_cg =
-  [ (15, "9192023f26dae0eebcce11afa7372eb6")
+  [ (5,  "e74c501299b456a6cb29e4f5714e9061")
+  , (10, "b6d0770101f4ebdaa9a55d94f07b001f")
+  , (15, "9192023f26dae0eebcce11afa7372eb6")
   , (20, "75ef56391b61e1bb2336e36ac7834216")
   , (25, "5901128892a264b73b5479b70b331fd0")
   , (30, "75ef56391b61e1bb2336e36ac7834216")

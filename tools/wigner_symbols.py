@@ -129,6 +129,10 @@ def mkdirs(path):
     except OSError:
         pass
 
+def show_signedsqrtfrac(r):
+    s = str((1 if r >= 0 else -1) * r ** 2)
+    return s if "/" in s else s + "/1"
+
 def iter_12tjms(tjmax):
     for tj1 in range(tjmax + 1):
         for tj2 in range(tjmax + 1):
@@ -141,44 +145,69 @@ def iter_12tjms(tjmax):
                         if (tj1 + tj2 + tj12) % 2 or abs(tm12) > tj12:
                             continue
                         yield tj1, tm1, tj2, tm2, tj12, tm12
-def main():
-    import hashlib
 
-    # at tjmax = 25 this may take a min or two
-    # sympy is about 10x slower
-    tjmax = 10
-    use_sympy = False
+def iter_6tjs(tjmax):
+    for tj1 in range(tjmax + 1):
+        for tj2 in range(tjmax + 1):
+            for tj12 in range(abs(tj1 - tj2), tj1 + tj2 + 1, 2):
+                if tj12 > tjmax:
+                    continue
+                for tm1 in range(-tj1, tj1 + 1, 2):
+                    for tm2 in range(-tj2, tj2 + 1, 2):
+                        tm12 = tm1 + tm2
+                        if (tj1 + tj2 + tj12) % 2 or abs(tm12) > tj12:
+                            continue
+                        yield tja, tjb, tjc, tjd, tje, tjf
 
-    if use_sympy:
-        from sympy.physics.wigner import clebsch_gordan
+def dump_output(name, tjmax):
     mkdirs("dist")
-    filename = "dist/{0}pycg-tj{1}.txt".format(
-        "sym" if use_sympy else "",
-        tjmax
-    )
-
+    filename = "dist/{0}py-tj{1}.txt".format(name, tjmax)
     with open(filename, "w") as f:
+        yield f.write
+    print(md5sum(filename) + "  " + filename)
+
+def dump_cg(tjmax, use_sympy=False):
+    name = "cg"
+    if use_sympy:
+        import sympy.physics.wigner as spw
+        name = "sym" + name
+    for write in dump_output(name, tjmax):
         for tj1, tm1, tj2, tm2, tj12, tm12 in iter_12tjms(tjmax):
             if use_sympy:
-                z = clebsch_gordan(Fraction(tj1, 2),
-                                   Fraction(tj2, 2),
-                                   Fraction(tj12, 2),
-                                   Fraction(tm1, 2),
-                                   Fraction(tm2, 2),
-                                   Fraction(tm12, 2))
-                sz = str((1 if z >= 0 else -1) * z ** 2)
-                f.write("\t".join(map(str, (
-                    tj1, tm1, tj2, tm2, tj12, tm12,
-                    sz if "/" in sz else sz + "/1"
+                z = spw.clebsch_gordan(
+                    Fraction(tj1, 2), Fraction(tj2, 2), Fraction(tj12, 2),
+                    Fraction(tm1, 2), Fraction(tm2, 2), Fraction(tm12, 2),
+                )
+                write("\t".join(map(str, (
+                    tj1, tm1, tj2, tm2, tj12, tm12, show_signedsqrtfrac(z),
                 ))) + "\n")
             else:
                 s, r = clebschgordansq(tj1, tm1, tj2, tm2, tj12, tm12)
-                f.write("\t".join(map(str, (
+                write("\t".join(map(str, (
                     tj1, tm1, tj2, tm2, tj12, tm12,
                     "{0}/{1}".format(s * r.numerator, r.denominator)
                 ))) + "\n")
 
-    print(md5sum(filename) + " " + filename)
+def dump_w6j(tjmax):
+    import sympy.physics.wigner as spw
+    for write in dump_output("symw6j", tjmax):
+        for tja, tjb, tjc, tjd, tje, tjf in iter_6tjs(tjmax):
+            z = spw.wigner_6j(
+                Fraction(tja, 2), Fraction(tjb, 2), Fraction(tjc, 2),
+                Fraction(tjd, 2), Fraction(tje, 2), Fraction(tjf, 2),
+            )
+            write("\t".join(map(str, (
+                tja, tjb, tjc, tjd, tje, tjf, show_signedsqrtfrac(z),
+            ))) + "\n")
+
+def main():
+    # at tjmax = 25, CG may take a min or two
+    # (sympy is about 10x slower than our Python implementation)
+    tjmax = 5
+    use_sympy = False
+
+    dump_cg(tjmax, use_sympy)
+    #dump_w6j(tjmax)
 
 if __name__ == "__main__":
     main()
