@@ -4,10 +4,12 @@ module Main (main) where
 import Control.Applicative (pure)
 import Data.Functor ((<$>))
 #endif
-import Control.Monad.ST -- (runST)
+import Control.Monad.Primitive (PrimMonad, PrimState)
+import Control.Monad.ST (runST)
 import Data.Foldable (for_)
 import Data.Monoid ((<>))
 import Data.Vector (Vector)
+import Data.Vector.Generic.Mutable (MVector)
 import Data.Vector.Unboxed (Unbox)
 import qualified Data.Vector.Generic as Vector
 import qualified Data.Vector.Generic.Mutable as MVector
@@ -17,6 +19,16 @@ import Criterion.Main
 import WignerSymbols
 import WignerSymbols.Internal
 type Vector_Unboxed a = Vector_Unboxed.Vector a
+
+mvector_modify :: (PrimMonad m, MVector v a) =>
+                  v (PrimState m) a -> (a -> a) -> Int -> m ()
+#if MIN_VERSION_vector(0, 11, 0)
+mvector_modify = MVector.modify
+#else
+mvector_modify v f i = do
+  x <- MVector.read v i
+  MVector.write v i (f x)
+#endif
 
 type ThreeTjm = (Int, Int, Int, Int, Int, Int)
 
@@ -56,7 +68,7 @@ categorize numCategories xs classify = (offsets, table)
     tableL = runST $ do
       mtableL <- MVector.replicate numCategories []
       for_ xs $ \ x ->
-        MVector.modify mtableL (x :) (classify x)
+        mvector_modify mtableL (x :) (classify x)
       Vector.freeze mtableL
 
     tableG :: Vector (Vector_Unboxed a)
