@@ -22,5 +22,7 @@ module WignerSymbols
   , wigner3jSq
 
     -- * Recoupling coefficients
+  , wigner6j
+  , wigner6jSq
   ) where
 import WignerSymbols.Internal

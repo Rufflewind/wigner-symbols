@@ -349,11 +349,17 @@ wigner6jSq (tja, tjb, tjc, tjd, tje, tjf)
 
 {-# INLINABLE triangleFactor #-}
 triangleFactor :: (Int, Int, Int) -> Rational
-triangleFactor (tja, tjb, tjc) =
-  factorial ((tja - tjb + tjc) `quot` 2) *
-  factorial ((tjb - tjc + tja) `quot` 2) *
-  factorial ((tjc - tja + tjb) `quot` 2) %
-  factorial ((tja + tjb + tjc) `quot` 2 + 1)
+triangleFactor (tja, tjb, tjc) = triangleFactorRaw jjj (jjja, jjjb, jjjc)
+  where !jjja = (tjc - tja + tjb) `quot` 2
+        !jjjb = (tja - tjb + tjc) `quot` 2
+        !jjjc = (tjb - tjc + tja) `quot` 2
+        !jjj  = (tja + tjb + tjc) `quot` 2 + 1
+
+{-# INLINABLE triangleFactorRaw #-}
+triangleFactorRaw :: Int -> (Int, Int, Int) -> Rational
+triangleFactorRaw jjj (jjja, jjjb, jjjc) =
+  factorial jjju * factorial jjjv % fallingFactorialI jjj (jjj - jjjw)
+  where [!jjju, !jjjv, !jjjw] = sort [jjja, jjjb, jjjc]
 
 {-# INLINABLE getTriangularTjs #-}
 getTriangularTjs :: Int -> (Int, Int) -> [Int]
@@ -393,3 +399,17 @@ get6tjs tjMax = do
   tje <- getTriangularTjs tjMax (tjd, tjc)
   tjf <- getBitriangularTjs tjMax ((tja, tje), (tjd, tjb))
   pure (tja, tjb, tjc, tjd, tje, tjf)
+
+{-# INLINABLE get9tjs #-}
+get9tjs :: Int -> [(Int, Int, Int, Int, Int, Int, Int, Int, Int)]
+get9tjs tjMax = do
+  tja <- [0 .. tjMax]
+  tjb <- [0 .. tjMax]
+  tjc <- getTriangularTjs tjMax (tja, tjb)
+  tjd <- [0 .. tjMax]
+  tje <- getTriangularTjs tjMax (tjd, tjc)
+  tjf <- getBitriangularTjs tjMax ((tja, tje), (tjd, tjb))
+  tjg <- [0 .. tjMax]
+  tjh <- getTriangularTjs tjMax (tjd, tjc)
+  tji <- getBitriangularTjs tjMax ((tja, tje), (tjd, tjb))
+  pure (tja, tjb, tjc, tjd, tje, tjf, tjg, tjh, tji)
