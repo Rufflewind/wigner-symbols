@@ -146,22 +146,32 @@ def iter_12tjms(tjmax):
                             continue
                         yield tj1, tm1, tj2, tm2, tj12, tm12
 
+def triangular_range(tja, tjb, tjmax):
+    return range(abs(tja - tjb), min(tja + tjb, tjmax) + 1, 2)
+
+def bitriangular_range(tja, tjb, tjc, tjd, tjmax):
+    # (tja, tjb) and (tjc, tjd) must be of the same parity;
+    # this automatically holds if the two triangles share a common edge
+    assert (tja + tjb) % 2 == (tjc + tjd) % 2
+    return range(
+        max(abs(tja - tjb), abs(tjc - tjd)),
+        min(tja + tjb, tjc + tjd, tjmax) + 1,
+        2
+    )
+
 def iter_6tjs(tjmax):
-    for tj1 in range(tjmax + 1):
-        for tj2 in range(tjmax + 1):
-            for tj12 in range(abs(tj1 - tj2), tj1 + tj2 + 1, 2):
-                if tj12 > tjmax:
-                    continue
-                for tm1 in range(-tj1, tj1 + 1, 2):
-                    for tm2 in range(-tj2, tj2 + 1, 2):
-                        tm12 = tm1 + tm2
-                        if (tj1 + tj2 + tj12) % 2 or abs(tm12) > tj12:
-                            continue
-                        yield tja, tjb, tjc, tjd, tje, tjf
+    for tja in range(tjmax + 1):
+        for tjb in range(tjmax + 1):
+            for tjc in triangular_range(tja, tjb, tjmax):
+                for tjd in range(tjmax + 1):
+                    for tje in triangular_range(tjd, tjc, tjmax):
+                        for tjf in bitriangular_range(tja, tje,
+                                                      tjd, tjb, tjmax):
+                            yield tja, tjb, tjc, tjd, tje, tjf
 
 def dump_output(name, tjmax):
     mkdirs("dist")
-    filename = "dist/{0}py-tj{1}.txt".format(name, tjmax)
+    filename = "dist/{0}-tj{1}.txt".format(name, tjmax)
     with open(filename, "w") as f:
         yield f.write
     print(md5sum(filename) + "  " + filename)
@@ -206,8 +216,8 @@ def main():
     tjmax = 5
     use_sympy = False
 
-    dump_cg(tjmax, use_sympy)
-    #dump_w6j(tjmax)
+    #dump_cg(tjmax, use_sympy)
+    dump_w6j(tjmax)
 
 if __name__ == "__main__":
     main()
