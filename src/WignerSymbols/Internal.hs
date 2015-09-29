@@ -407,9 +407,9 @@ get9tjs tjMax = do
   tjb <- [0 .. tjMax]
   tjc <- getTriangularTjs tjMax (tja, tjb)
   tjd <- [0 .. tjMax]
-  tje <- getTriangularTjs tjMax (tjd, tjc)
-  tjf <- getBitriangularTjs tjMax ((tja, tje), (tjd, tjb))
-  tjg <- [0 .. tjMax]
-  tjh <- getTriangularTjs tjMax (tjd, tjc)
-  tji <- getBitriangularTjs tjMax ((tja, tje), (tjd, tjb))
+  tje <- [0 .. tjMax]
+  tjf <- getTriangularTjs tjMax (tjd, tje)
+  tjg <- getTriangularTjs tjMax (tja, tjd)
+  tjh <- getTriangularTjs tjMax (tjb, tje)
+  tji <- getBitriangularTjs tjMax ((tjg, tjh), (tjc, tjf))
   pure (tja, tjb, tjc, tjd, tje, tjf, tjg, tjh, tji)
