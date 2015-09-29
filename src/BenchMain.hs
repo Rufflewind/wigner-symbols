@@ -37,12 +37,15 @@ type Partition a = (Vector_Unboxed Int, Vector_Unboxed a)
 main :: IO ()
 main =
   defaultMain
-    [ env (pure (getTable3tjms tableTjMax)) $ \ ~table3tjms ->
-      bgroup ""
-      [ bgroup "cg" (bench3tjms table3tjms flippedClebschGordan)
-      , bgroup "3j" (bench3tjms table3tjms wigner3j)
-      ]
+  [ env (pure (getTable3tjms tableTjMax)) $ \ ~table3tjms ->
+    bgroup ""
+    [ bgroup "cg" (bench3tjms table3tjms flippedClebschGordan)
+    , bgroup "3j" (bench3tjms table3tjms wigner3j)
     ]
+  , bench "cg.tj=8" (whnf clebschGordanSq (8, 0, 8, 0, 8, 0))
+  , bench "cg.tj=50" (whnf clebschGordanSq (50, 0, 50, 0, 50, 0))
+  , bench "cg.tj=100" (whnf clebschGordanSq (100, 0, 100, 0, 100, 0))
+  ]
   where
 
     tableTjMax = 25
