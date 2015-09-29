@@ -100,7 +100,7 @@ fallingFactorialI = go 1 1
               in go r' i' n' k
 
 {-# INLINABLE minusOnePow #-}
-minusOnePow :: Integral a => a -> a
+minusOnePow :: Int -> Int
 minusOnePow n = 1 - n `mod` 2 * 2
 
 -- note: -fllvm makes this faster (~10%)
@@ -116,7 +116,7 @@ triangleConditionI :: Integral a => a -> a -> a -> Bool
 triangleConditionI a b c =
   c - abs (a - b) >= 0 &&
   a + b - c >= 0 &&
-  (a + b - c) `quot` 2 == 0
+  (a + b - c) `rem` 2 == 0
 
 -- | Calculate a Clebsch-Gordan coefficient.
 {-# INLINABLE clebschGordan #-}
@@ -298,29 +298,14 @@ clebschGordanSqSlow (tj1, tm1, tj2, tm2, tj12, tm12)
             facHalf(tj1 + tj2 + tj12 + 2)
         ) * r ^ (2 :: Int)
 
-{-# INLINABLE getTj12s #-}
-getTj12s :: (Enum a, Num a) => (a, a) -> [a]
-getTj12s (tj1, tj2) = [tj12min, tj12min + 2 .. tj12max]
-  where tj12min = abs (tj1 - tj2)
-        tj12max = tj1 + tj2
+-- | Calculate a Wigner 6-j symbol.
+{-# INLINABLE wigner6j #-}
+wigner6j :: (Int, Int, Int, Int, Int, Int)
+         -- ^ @(tj11, tj12, tj13, tj21, tj22, tj23)@.
+         -> Double
+wigner6j = ssr_approx . wigner6jSq
 
-{-# INLINABLE getTms #-}
-getTms :: (Enum a, Num a) => a -> [a]
-getTms tj = [-tj, -tj + 2 .. tj]
-
-{-# INLINABLE get3tjms #-}
-get3tjms :: Int -> [(Int, Int, Int, Int, Int, Int)]
-get3tjms tjMax = do
-  tj1 <- [0 .. tjMax]
-  tj2 <- [0 .. tjMax]
-  tj3 <- getTj12s (tj1, tj2)
-  guard (tj3 <= tjMax)
-  tm1 <- getTms tj1
-  tm2 <- getTms tj2
-  let tm3 = -(tm1 + tm2)
-  guard (abs tm3 <= tj3)
-  pure (tj1, tm1, tj2, tm2, tj3, tm3)
-
+{-# INLINABLE wigner6jSq #-}
 wigner6jSq :: (Int, Int, Int, Int, Int, Int) -> SignedSqrtRational
 wigner6jSq (tja, tjb, tjc, tjd, tje, tjf)
   | satisfiesSelectionRule = SignedSqrtRatio z
@@ -354,17 +339,57 @@ wigner6jSq (tja, tjb, tjc, tjd, tje, tjf)
       [ tja + tjb + tjc
       , tjd + tje + tjc
       , tjd + tjb + tjf
-      , tja + tje + tjf ]
+      , tja + tje + tjf ] `quot` 2
 
     kmax =
       minimum
       [ tja + tjd + tjb + tje
       , tjb + tje + tjc + tjf
-      , tja + tjd + tjc + tjf ]
+      , tja + tjd + tjc + tjf ] `quot` 2
 
+{-# INLINABLE triangleFactor #-}
 triangleFactor :: (Int, Int, Int) -> Rational
 triangleFactor (tja, tjb, tjc) =
   factorial ((tja - tjb + tjc) `quot` 2) *
   factorial ((tjb - tjc + tja) `quot` 2) *
   factorial ((tjc - tja + tjb) `quot` 2) %
   factorial ((tja + tjb + tjc) `quot` 2 + 1)
+
+{-# INLINABLE getTriangularTjs #-}
+getTriangularTjs :: Int -> (Int, Int) -> [Int]
+getTriangularTjs tjMax (tja, tjb) = [tjmin, tjmin + 2 .. tjmax]
+  where tjmin = abs (tja - tjb)
+        tjmax = min tjMax (tja + tjb)
+
+{-# INLINABLE getBitriangularTjs #-}
+getBitriangularTjs :: Int -> ((Int, Int), (Int, Int)) -> [Int]
+getBitriangularTjs tjMax ((tja, tjb), (tjc, tjd)) = [tjmin, tjmin + 2 .. tjmax]
+  where tjmin = max (abs (tja - tjb)) (abs (tjc - tjd))
+        tjmax = minimum [tjMax, tja + tjb, tjc + tjd]
+
+{-# INLINABLE getTms #-}
+getTms :: Int -> [Int]
+getTms tj = [-tj, -tj + 2 .. tj]
+
+{-# INLINABLE get3tjms #-}
+get3tjms :: Int -> [(Int, Int, Int, Int, Int, Int)]
+get3tjms tjMax = do
+  tj1 <- [0 .. tjMax]
+  tj2 <- [0 .. tjMax]
+  tj3 <- getTriangularTjs tjMax (tj1, tj2)
+  tm1 <- getTms tj1
+  tm2 <- getTms tj2
+  let tm3 = -(tm1 + tm2)
+  guard (abs tm3 <= tj3)
+  pure (tj1, tm1, tj2, tm2, tj3, tm3)
+
+{-# INLINABLE get6tjs #-}
+get6tjs :: Int -> [(Int, Int, Int, Int, Int, Int)]
+get6tjs tjMax = do
+  tja <- [0 .. tjMax]
+  tjb <- [0 .. tjMax]
+  tjc <- getTriangularTjs tjMax (tja, tjb)
+  tjd <- [0 .. tjMax]
+  tje <- getTriangularTjs tjMax (tjd, tjc)
+  tjf <- getBitriangularTjs tjMax ((tja, tje), (tjd, tjb))
+  pure (tja, tjb, tjc, tjd, tje, tjf)

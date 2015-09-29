@@ -29,8 +29,8 @@ checkResults knownHashes tjMax name compute = do
   newHash <- hexMD5 <$> ByteStringL.readFile filename
   case lookup tjMax knownHashes of
     Nothing -> do
-      hPutStrLn stderr (errorPrefix <> "no previous hash available")
-      hPutStrLn stderr ("current hash is: " <> newHash)
+      hPutStrLn stderr (errorPrefix <> "no known hash available")
+      hPutStrLn stderr ("actual: " <> newHash)
       hFlush stderr
       exitFailure
     Just oldHash
@@ -39,8 +39,8 @@ checkResults knownHashes tjMax name compute = do
           hFlush stdout
       | otherwise -> do
           hPutStrLn stderr (errorPrefix <> name <> ": hash does not match!")
-          hPutStrLn stderr ("previous hash is: " <> oldHash)
-          hPutStrLn stderr ("current hash is:  " <> newHash)
+          hPutStrLn stderr ("expected: " <> oldHash)
+          hPutStrLn stderr ("actual:   " <> newHash)
           hFlush stderr
           exitFailure
   where filename = "dist/" <> name <> "-tj" <> show tjMax <> ".txt"
@@ -50,7 +50,7 @@ checkResults knownHashes tjMax name compute = do
 main :: IO ()
 main = do
 
-  checkResults knownHashes_cg 15 "cg" $ \ tjMax write ->
+  checkResults knownHashes_cg 25 "cg" $ \ tjMax write ->
     for_ (get3tjms tjMax) $ \ (tj1, tm1, tj2, tm2, tj3, tm3) ->
       let r = clebschGordanSq (tj1, tm1, tj2, tm2, tj3, -tm3) in
       write $
@@ -58,7 +58,7 @@ main = do
         "\t" <> show (ssr_signum r * ssr_numerator r) <>
         "/" <> show (ssr_denominator r)
 
-  checkResults knownHashes_cg 15 "cgw" $ \ tjMax write ->
+  checkResults knownHashes_cg 5 "cgw" $ \ tjMax write ->
     for_ (get3tjms tjMax) $ \ (tj1, tm1, tj2, tm2, tj3, tm3) ->
       let SignedSqrtRatio wr = wigner3jSq (tj1, tm1, tj2, tm2, tj3, tm3)
           r = wr
@@ -69,6 +69,14 @@ main = do
         "\t" <> show (numerator r) <>
         "/" <> show (denominator r)
 
+  checkResults knownHashes_w6j 5 "w6j" $ \ tjMax write ->
+    for_ (get6tjs tjMax) $ \ (tja, tjb, tjc, tjd, tje, tjf) ->
+      let r = wigner6jSq (tja, tjb, tjc, tjd, tje, tjf) in
+      write $
+        intercalate "\t" (show <$> [tja, tjb, tjc, tjd, tje, tjf]) <>
+        "\t" <> show (ssr_signum r * ssr_numerator r) <>
+        "/" <> show (ssr_denominator r)
+
 knownHashes_cg :: [(Int, String)]
 knownHashes_cg =
   [ (5,  "e74c501299b456a6cb29e4f5714e9061")
@@ -78,4 +86,9 @@ knownHashes_cg =
   , (25, "5901128892a264b73b5479b70b331fd0")
   , (30, "75ef56391b61e1bb2336e36ac7834216")
   , (40, "2f9b936ea977249c1fea8a22d190a4cf")
+  ]
+
+knownHashes_w6j :: [(Int, String)]
+knownHashes_w6j =
+  [ (5,  "26c24e568fc96f1732ebb3130a46f22a")
   ]
