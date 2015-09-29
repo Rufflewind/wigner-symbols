@@ -69,7 +69,7 @@ main = do
         "\t" <> show (numerator r) <>
         "/" <> show (denominator r)
 
-  checkResults knownHashes_w6j 25 "w6j" $ \ tjMax write ->
+  checkResults knownHashes_w6j 15 "w6j" $ \ tjMax write ->
     for_ (get6tjs tjMax) $ \ (tja, tjb, tjc, tjd, tje, tjf) ->
       let r = wigner6jSq (tja, tjb, tjc, tjd, tje, tjf) in
       write $
@@ -79,16 +79,25 @@ main = do
 
 knownHashes_cg :: [(Int, String)]
 knownHashes_cg =
-  [ (5,  "e74c501299b456a6cb29e4f5714e9061")
-  , (10, "b6d0770101f4ebdaa9a55d94f07b001f")
-  , (15, "9192023f26dae0eebcce11afa7372eb6")
-  , (20, "75ef56391b61e1bb2336e36ac7834216")
-  , (25, "5901128892a264b73b5479b70b331fd0")
-  , (30, "75ef56391b61e1bb2336e36ac7834216")
-  , (40, "2f9b936ea977249c1fea8a22d190a4cf")
+  [ (5,  "e74c501299b456a6cb29e4f5714e9061") --      681
+  , (10, "b6d0770101f4ebdaa9a55d94f07b001f") --    11487
+  , (15, "9192023f26dae0eebcce11afa7372eb6") --    69272
+  , (20, "75ef56391b61e1bb2336e36ac7834216") --   259523
+  , (25, "5901128892a264b73b5479b70b331fd0") --   737113
+  , (30, "75ef56391b61e1bb2336e36ac7834216") --  1747984
+  , (40, "2f9b936ea977249c1fea8a22d190a4cf") -- 46931995
   ]
 
 knownHashes_w6j :: [(Int, String)]
 knownHashes_w6j =
-  [ (5,  "26c24e568fc96f1732ebb3130a46f22a")
+  [ (5,  "26c24e568fc96f1732ebb3130a46f22a") --    1479
+  , (10, "f892f4b466e0558179ca870941d0a456") --   42393
+  , (15, "f50b0163194cef1699727b7064760ec0") --  363196
+  , (20, "f892f4b466e0558179ca870941d0a456") -- 1766270
+  , (25, "f326bf6e12a94120d2f46582e95e92f8") -- 6171698
+  ]
+
+knownHashes_w9j :: [(Int, String)]
+knownHashes_w9j =
+  [ (5,  "???") -- ???
   ]
