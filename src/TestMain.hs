@@ -69,7 +69,7 @@ main = do
         "\t" <> show (numerator r) <>
         "/" <> show (denominator r)
 
-  checkResults knownHashes_w6j 5 "w6j" $ \ tjMax write ->
+  checkResults knownHashes_w6j 25 "w6j" $ \ tjMax write ->
     for_ (get6tjs tjMax) $ \ (tja, tjb, tjc, tjd, tje, tjf) ->
       let r = wigner6jSq (tja, tjb, tjc, tjd, tje, tjf) in
       write $

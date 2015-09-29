@@ -318,7 +318,7 @@ wigner6jSq (tja, tjb, tjc, tjd, tje, tjf)
       triangleConditionI tjd tjb tjf &&
       triangleConditionI tjd tje tjc
 
-    z = z1 * fromInteger (z2 ^ (2 :: Int))
+    z = fromInteger (signum z2) * z1 * fromInteger (z2 ^ (2 :: Int))
 
     z1 =
       triangleFactor (tja, tje, tjf) *
