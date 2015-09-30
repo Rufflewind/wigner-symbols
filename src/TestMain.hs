@@ -15,38 +15,6 @@ import qualified Data.ByteString.Lazy as ByteStringL
 import WignerSymbols
 import WignerSymbols.Internal
 
-hexMD5 :: ByteStringL.ByteString -> String
-hexMD5 s = show (hashlazy s :: Digest MD5)
-
-checkResults :: [(Int, String)]
-             -> Int
-             -> String
-             -> (Int -> (String -> IO ()) -> IO ())
-             -> IO ()
-checkResults knownHashes tjMax name compute = do
-  withFile filename WriteMode $ \ h ->
-    compute tjMax (hPutStrLn h)
-  newHash <- hexMD5 <$> ByteStringL.readFile filename
-  case lookup tjMax knownHashes of
-    Nothing -> do
-      hPutStrLn stderr (errorPrefix <> "no known hash available")
-      hPutStrLn stderr ("actual: " <> newHash)
-      hFlush stderr
-      exitFailure
-    Just oldHash
-      | oldHash == newHash -> do
-          putStrLn (okPrefix <> name <> ": hash matched (" <> oldHash <> ")")
-          hFlush stdout
-      | otherwise -> do
-          hPutStrLn stderr (errorPrefix <> name <> ": hash does not match!")
-          hPutStrLn stderr ("expected: " <> oldHash)
-          hPutStrLn stderr ("actual:   " <> newHash)
-          hFlush stderr
-          exitFailure
-  where filename = "dist/" <> name <> "-tj" <> show tjMax <> ".txt"
-        errorPrefix = "[\ESC[31;1merror\ESC[0m] "
-        okPrefix = "[\ESC[32mok\ESC[0m] "
-
 main :: IO ()
 main = do
 
@@ -85,12 +53,6 @@ main = do
         "\t" <> show (ssr_signum r * ssr_numerator r) <>
         "/" <> show (ssr_denominator r)
 
-tuple6ToList :: (a, a, a, a, a, a) -> [a]
-tuple6ToList (a, b, c, d, e, f) = [a, b, c, d, e, f]
-
-tuple9ToList :: (a, a, a, a, a, a, a, a, a) -> [a]
-tuple9ToList (a, b, c, d, e, f, g, h, i) = [a, b, c, d, e, f, g, h, i]
-
 knownHashes_cg :: [(Int, String)]
 knownHashes_cg =
   [ (5,  "e74c501299b456a6cb29e4f5714e9061") --      681
@@ -113,6 +75,38 @@ knownHashes_w6j =
 
 knownHashes_w9j :: [(Int, String)]
 knownHashes_w9j =
-  [ (5,  "?") --   38031
+  [ (5,  "d596fa3960aafae148754b6f3274507d") --   38031
   , (10, "?") -- 5898846
   ]
+
+checkResults :: [(Int, String)]
+             -> Int
+             -> String
+             -> (Int -> (String -> IO ()) -> IO ())
+             -> IO ()
+checkResults knownHashes tjMax name compute = do
+  withFile filename WriteMode $ \ h ->
+    compute tjMax (hPutStrLn h)
+  newHash <- hexMD5 <$> ByteStringL.readFile filename
+  case lookup tjMax knownHashes of
+    Nothing -> do
+      hPutStrLn stderr (errorPrefix <> "no known hash available")
+      hPutStrLn stderr ("actual: " <> newHash)
+      hFlush stderr
+      exitFailure
+    Just oldHash
+      | oldHash == newHash -> do
+          putStrLn (okPrefix <> name <> ": hash matched (" <> oldHash <> ")")
+          hFlush stdout
+      | otherwise -> do
+          hPutStrLn stderr (errorPrefix <> name <> ": hash does not match!")
+          hPutStrLn stderr ("expected: " <> oldHash)
+          hPutStrLn stderr ("actual:   " <> newHash)
+          hFlush stderr
+          exitFailure
+  where filename = "dist/" <> name <> "-tj" <> show tjMax <> ".txt"
+        errorPrefix = "[\ESC[31;1merror\ESC[0m] "
+        okPrefix = "[\ESC[32mok\ESC[0m] "
+
+hexMD5 :: ByteStringL.ByteString -> String
+hexMD5 s = show (hashlazy s :: Digest MD5)

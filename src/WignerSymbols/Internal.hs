@@ -474,3 +474,11 @@ get9tjs tjMax = do
   tjh <- getTriangularTjs tjMax (tjb, tje)
   tji <- getBitriangularTjs tjMax ((tjg, tjh), (tjc, tjf))
   pure (tja, tjb, tjc, tjd, tje, tjf, tjg, tjh, tji)
+
+{-# INLINABLE tuple6ToList #-}
+tuple6ToList :: (a, a, a, a, a, a) -> [a]
+tuple6ToList (a, b, c, d, e, f) = [a, b, c, d, e, f]
+
+{-# INLINABLE tuple9ToList #-}
+tuple9ToList :: (a, a, a, a, a, a, a, a, a) -> [a]
+tuple9ToList (a, b, c, d, e, f, g, h, i) = [a, b, c, d, e, f, g, h, i]
