@@ -41,7 +41,7 @@ main = do
   initRRFLib numOfPrimes
   rrf <- rrf_new maxStrLen
 
-  tabulate 10 "w9j" $ \ tjMax write ->
+  tabulate 7 "w9j" $ \ tjMax write ->
     for_ (get9tjs tjMax) $ \ tjs -> do
       rrf_ninej rrf tjs
       r <- rrf_read rrf
@@ -71,8 +71,12 @@ p_rrf :: ReadP Rational
 p_rrf = combine <$> prefactor <*> radical
   where
     combine c r = signum c * r * c ^ (2 :: Int)
-    prefactor = (*) <$> p_sign <*> p_optionalParens p_frac
-    radical   = P.string "*sqrt" *> p_parens p_frac <++ pure 1
+    prefactor = (*) <$> p_sign <*> (p_optionalParens p_frac <++ pure 1)
+    times     = p_opt(P.char '*')
+    radical   = times *> P.string "sqrt" *> p_parens p_frac <++ pure 1
+
+p_opt :: ReadP a -> ReadP (Maybe a)
+p_opt p = Just <$> p <++ pure Nothing
 
 p_parens :: ReadP a -> ReadP a
 p_parens p = P.char '(' *> p <* P.char ')'

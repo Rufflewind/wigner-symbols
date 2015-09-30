@@ -76,7 +76,8 @@ knownHashes_w6j =
 knownHashes_w9j :: [(Int, String)]
 knownHashes_w9j =
   [ (5,  "d596fa3960aafae148754b6f3274507d") --   38031
-  , (10, "?") -- 5898846
+  , (7,  "7b338708ef3aa4ba0a4f5bd8c8b4e6aa") --  401899
+  , (10, "") -- 5898846
   ]
 
 checkResults :: [(Int, String)]
