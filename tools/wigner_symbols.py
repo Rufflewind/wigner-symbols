@@ -160,14 +160,25 @@ def bitriangular_range(tja, tjb, tjc, tjd, tjmax):
     )
 
 def iter_6tjs(tjmax):
-    for tja in range(tjmax + 1):
-        for tjb in range(tjmax + 1):
-            for tjc in triangular_range(tja, tjb, tjmax):
-                for tjd in range(tjmax + 1):
-                    for tje in triangular_range(tjd, tjc, tjmax):
-                        for tjf in bitriangular_range(tja, tje,
-                                                      tjd, tjb, tjmax):
-                            yield tja, tjb, tjc, tjd, tje, tjf
+    return [(tja, tjb, tjc, tjd, tje, tjf)
+            for tja in range(tjmax + 1)
+            for tjb in range(tjmax + 1)
+            for tjc in triangular_range(tja, tjb, tjmax)
+            for tjd in range(tjmax + 1)
+            for tje in triangular_range(tjd, tjc, tjmax)
+            for tjf in bitriangular_range(tja, tje, tjd, tjb, tjmax)]
+
+def iter_9tjs(tjmax):
+    return [(tja, tjb, tjc, tjd, tje, tjf, tjg, tjh, tji)
+            for tja in range(tjmax + 1)
+            for tjb in range(tjmax + 1)
+            for tjc in triangular_range(tja, tjb, tjmax)
+            for tjd in range(tjmax + 1)
+            for tje in range(tjmax + 1)
+            for tjf in triangular_range(tjd, tje, tjmax)
+            for tjg in triangular_range(tja, tjd, tjmax)
+            for tjh in triangular_range(tjb, tje, tjmax)
+            for tji in bitriangular_range(tjg, tjh, tjc, tjf, tjmax)]
 
 def dump_output(name, tjmax):
     mkdirs("dist")
@@ -201,22 +212,29 @@ def dump_cg(tjmax, use_sympy=False):
 def dump_w6j(tjmax):
     import sympy.physics.wigner as spw
     for write in dump_output("symw6j", tjmax):
-        for tja, tjb, tjc, tjd, tje, tjf in iter_6tjs(tjmax):
-            z = spw.wigner_6j(
-                Fraction(tja, 2), Fraction(tjb, 2), Fraction(tjc, 2),
-                Fraction(tjd, 2), Fraction(tje, 2), Fraction(tjf, 2),
-            )
-            write("\t".join(map(str, (
-                tja, tjb, tjc, tjd, tje, tjf, show_signedsqrtfrac(z),
-            ))) + "\n")
+        for tjs in iter_6tjs(tjmax):
+            z = spw.wigner_6j(*(Fraction(tj, 2) for tj in tjs))
+            write("\t".join(map(str, tjs + (show_signedsqrtfrac(z),))) + "\n")
+
+def dump_w9j(tjmax):
+    # note: sympy's wigner_9j is buggy for half-integer arguments
+    import sympy.physics.wigner as spw
+    for write in dump_output("symw9j", tjmax):
+        for tjs in iter_9tjs(tjmax):
+            z = spw.wigner_9j(*(Fraction(tj, 2) for tj in tjs))
+            write("\t".join(map(str, tjs + (show_signedsqrtfrac(z),))) + "\n")
 
 def main():
-    # at tjmax = 25, CG may take a min or two
-    # (sympy is about 10x slower than our Python implementation)
-    tjmax = 5
+    # at tjmax = 25,
+    #
+    # - Clesbch-Gordan coefficients take ~2min in our
+    #   implementation, while sympy's will be ~10x slower
+    # - sympy's wigner_6j is even slower (~8 hours)
+    #
+    tjmax = 25
     use_sympy = False
 
-    #dump_cg(tjmax, use_sympy)
+    dump_cg(tjmax, use_sympy)
     dump_w6j(tjmax)
 
 if __name__ == "__main__":
