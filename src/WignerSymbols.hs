@@ -6,6 +6,7 @@
 --
 module WignerSymbols
   (
+
     -- * 'SignedSqrtRatio'
     SignedSqrtRatio
   , SignedSqrtRational
@@ -24,5 +25,8 @@ module WignerSymbols
     -- * Recoupling coefficients
   , wigner6j
   , wigner6jSq
+  , wigner9j
+  , wigner9jSq
+
   ) where
 import WignerSymbols.Internal

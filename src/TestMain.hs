@@ -113,5 +113,6 @@ knownHashes_w6j =
 
 knownHashes_w9j :: [(Int, String)]
 knownHashes_w9j =
-  [ -- (5,  "") -- ???
+  [ (5,  "?") --   38031
+  , (10, "?") -- 5898846
   ]
