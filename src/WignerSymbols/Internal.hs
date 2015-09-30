@@ -326,26 +326,63 @@ wigner6jSq (tja, tjb, tjc, tjd, tje, tjf)
       triangleFactor (tjd, tje, tjc) /
       triangleFactor (tja, tjb, tjc)
 
-    z2 =
-      sum [ toInteger (minusOnePow k)
-          * binomialI (k + 1) (k - (tja + tjb + tjc) `quot` 2)
-          * binomialI ((tjc - tja + tjb) `quot` 2) (k - (tja + tje + tjf) `quot` 2)
-          * binomialI ((tja - tjb + tjc) `quot` 2) (k - (tjd + tjb + tjf) `quot` 2)
-          * binomialI ((tjb - tjc + tja) `quot` 2) (k - (tjd + tje + tjc) `quot` 2)
-          | k <- [kmin .. kmax] ]
+    z2 = tetrahedralSum (tja, tje, tjf, tjd, tjb, tjc)
 
-    kmin =
+-- | Calculate a Wigner 9-j symbol.
+{-# INLINABLE wigner9j #-}
+wigner9j :: (Int, Int, Int, Int, Int, Int, Int, Int, Int)
+         -- ^ @(tj11, tj12, tj13, tj21, tj22, tj23, tj31, tj32, tj33)@.
+         -> Double
+wigner9j = ssr_approx . wigner6jSq
+
+{-# INLINABLE wigner9jSq #-}
+wigner9jSq :: (Int, Int, Int, Int, Int, Int, Int, Int, Int)
+           -> SignedSqrtRational
+wigner9jSq tjs@(tja, tjb, tjc, tjd, tje, tjf, tjg, tjh, tji)
+  SignedSqrtRatio $
+  if triangleConditionI tja tjb tjc &&
+     triangleConditionI tjd tje tjf &&
+     triangleConditionI tjg tjh tji &&
+     triangleConditionI tja tjd tjg &&
+     triangleConditionI tjb tje tjh &&
+     triangleConditionI tjc tjf tji
+  then wigner9jSq tjs
+  else 0
+
+{-# INLINABLE wigner9jSq #-}
+wigner9jSqRaw :: (Int, Int, Int, Int, Int, Int, Int, Int, Int)
+              -> SignedSqrtRational
+wigner9jSqRaw (tja, tjb, tjc, tjd, tje, tjf, tjg, tjh, tji) = z
+  where
+
+    !z = fromInteger (signum z2) * z1 * fromInteger (z2 ^ (2 :: Int))
+
+    !z1 =
+      triangleFactor (tja, tjb, tjc) *
+      triangleFactor (tjd, tje, tjf) *
+      triangleFactor (tjg, tjh, tji) *
+      triangleFactor (tja, tjd, tjg) *
+      triangleFactor (tjb, tje, tjh) *
+      triangleFactor (tjc, tjf, tji)
+
+    !z2 =
+      sum [ toInteger (minusOnePow tk * (tk + 1))
+          * tetrahedralSum (tja, tjb, tjc, tjf, tji, tjk)
+          * tetrahedralSum (tjf, tjd, tje, tjh, tjb, tjk)
+          * tetrahedralSum (tjh, tji, tjg, tja, tjd, tjk)
+          | tk <- [kmin, kmin + 2 .. kmax] ]
+
+    !tkmin =
       maximum
-      [ tja + tjb + tjc
-      , tjd + tje + tjc
-      , tjd + tjb + tjf
-      , tja + tje + tjf ] `quot` 2
+      [ abs (tjh - tjd)
+      , abs (tjb - tjf)
+      , abs (tja - tji) ]
 
-    kmax =
+    !tkmax =
       minimum
-      [ tja + tjd + tjb + tje
-      , tjb + tje + tjc + tjf
-      , tja + tjd + tjc + tjf ] `quot` 2
+      [ tjh + tjd
+      , tjb + tjf
+      , tja + tjj ]
 
 {-# INLINABLE triangleFactor #-}
 triangleFactor :: (Int, Int, Int) -> Rational
@@ -366,6 +403,31 @@ getTriangularTjs :: Int -> (Int, Int) -> [Int]
 getTriangularTjs tjMax (tja, tjb) = [tjmin, tjmin + 2 .. tjmax]
   where tjmin = abs (tja - tjb)
         tjmax = min tjMax (tja + tjb)
+
+{-# INLINABLE tetrahedralSum #-}
+tetrahedralSum :: (Int, Int, Int, Int, Int, Int) -> Integer
+tetrahedralSum (tja, tje, tjf, tjd, tjb, tjc) =
+  sum [ toInteger (minusOnePow k)
+      * binomialI (k + 1) (k - (tja + tjb + tjc) `quot` 2)
+      * binomialI ((tjc - tja + tjb) `quot` 2) (k - (tja + tje + tjf) `quot` 2)
+      * binomialI ((tja - tjb + tjc) `quot` 2) (k - (tjd + tjb + tjf) `quot` 2)
+      * binomialI ((tjb - tjc + tja) `quot` 2) (k - (tjd + tje + tjc) `quot` 2)
+      | k <- [kmin .. kmax] ]
+
+  where
+
+    kmin =
+      maximum
+      [ tja + tjb + tjc
+      , tjd + tje + tjc
+      , tjd + tjb + tjf
+      , tja + tje + tjf ] `quot` 2
+
+    kmax =
+      minimum
+      [ tja + tjd + tjb + tje
+      , tjb + tje + tjc + tjf
+      , tja + tjd + tjc + tjf ] `quot` 2
 
 {-# INLINABLE getBitriangularTjs #-}
 getBitriangularTjs :: Int -> ((Int, Int), (Int, Int)) -> [Int]
