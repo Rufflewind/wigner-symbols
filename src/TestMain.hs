@@ -70,12 +70,26 @@ main = do
         "/" <> show (denominator r)
 
   checkResults knownHashes_w6j 15 "w6j" $ \ tjMax write ->
-    for_ (get6tjs tjMax) $ \ (tja, tjb, tjc, tjd, tje, tjf) ->
-      let r = wigner6jSq (tja, tjb, tjc, tjd, tje, tjf) in
+    for_ (get6tjs tjMax) $ \ tjs ->
+      let r = wigner6jSq tjs in
       write $
-        intercalate "\t" (show <$> [tja, tjb, tjc, tjd, tje, tjf]) <>
+        intercalate "\t" (show <$> tuple6ToList tjs) <>
         "\t" <> show (ssr_signum r * ssr_numerator r) <>
         "/" <> show (ssr_denominator r)
+
+  checkResults knownHashes_w9j 5 "w9j" $ \ tjMax write ->
+    for_ (get9tjs tjMax) $ \ tjs ->
+      let r = wigner9jSq tjs in
+      write $
+        intercalate "\t" (show <$> tuple9ToList tjs) <>
+        "\t" <> show (ssr_signum r * ssr_numerator r) <>
+        "/" <> show (ssr_denominator r)
+
+tuple6ToList :: (a, a, a, a, a, a) -> [a]
+tuple6ToList (a, b, c, d, e, f) = [a, b, c, d, e, f]
+
+tuple9ToList :: (a, a, a, a, a, a, a, a, a) -> [a]
+tuple9ToList (a, b, c, d, e, f, g, h, i) = [a, b, c, d, e, f, g, h, i]
 
 knownHashes_cg :: [(Int, String)]
 knownHashes_cg =
@@ -99,5 +113,5 @@ knownHashes_w6j =
 
 knownHashes_w9j :: [(Int, String)]
 knownHashes_w9j =
-  [ (5,  "???") -- ???
+  [ -- (5,  "") -- ???
   ]

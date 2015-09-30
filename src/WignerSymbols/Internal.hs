@@ -333,12 +333,12 @@ wigner6jSq (tja, tjb, tjc, tjd, tje, tjf)
 wigner9j :: (Int, Int, Int, Int, Int, Int, Int, Int, Int)
          -- ^ @(tj11, tj12, tj13, tj21, tj22, tj23, tj31, tj32, tj33)@.
          -> Double
-wigner9j = ssr_approx . wigner6jSq
+wigner9j = ssr_approx . wigner9jSq
 
 {-# INLINABLE wigner9jSq #-}
 wigner9jSq :: (Int, Int, Int, Int, Int, Int, Int, Int, Int)
            -> SignedSqrtRational
-wigner9jSq tjs@(tja, tjb, tjc, tjd, tje, tjf, tjg, tjh, tji)
+wigner9jSq tjs@(tja, tjb, tjc, tjd, tje, tjf, tjg, tjh, tji) =
   SignedSqrtRatio $
   if triangleConditionI tja tjb tjc &&
      triangleConditionI tjd tje tjf &&
@@ -346,12 +346,11 @@ wigner9jSq tjs@(tja, tjb, tjc, tjd, tje, tjf, tjg, tjh, tji)
      triangleConditionI tja tjd tjg &&
      triangleConditionI tjb tje tjh &&
      triangleConditionI tjc tjf tji
-  then wigner9jSq tjs
+  then wigner9jSqRaw tjs
   else 0
 
-{-# INLINABLE wigner9jSq #-}
-wigner9jSqRaw :: (Int, Int, Int, Int, Int, Int, Int, Int, Int)
-              -> SignedSqrtRational
+{-# INLINABLE wigner9jSqRaw #-}
+wigner9jSqRaw :: (Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Rational
 wigner9jSqRaw (tja, tjb, tjc, tjd, tje, tjf, tjg, tjh, tji) = z
   where
 
@@ -367,10 +366,10 @@ wigner9jSqRaw (tja, tjb, tjc, tjd, tje, tjf, tjg, tjh, tji) = z
 
     !z2 =
       sum [ toInteger (minusOnePow tk * (tk + 1))
-          * tetrahedralSum (tja, tjb, tjc, tjf, tji, tjk)
-          * tetrahedralSum (tjf, tjd, tje, tjh, tjb, tjk)
-          * tetrahedralSum (tjh, tji, tjg, tja, tjd, tjk)
-          | tk <- [kmin, kmin + 2 .. kmax] ]
+          * tetrahedralSum (tja, tjb, tjc, tjf, tji, tk)
+          * tetrahedralSum (tjf, tjd, tje, tjh, tjb, tk)
+          * tetrahedralSum (tjh, tji, tjg, tja, tjd, tk)
+          | tk <- [tkmin, tkmin + 2 .. tkmax] ]
 
     !tkmin =
       maximum
@@ -382,7 +381,7 @@ wigner9jSqRaw (tja, tjb, tjc, tjd, tje, tjf, tjg, tjh, tji) = z
       minimum
       [ tjh + tjd
       , tjb + tjf
-      , tja + tjj ]
+      , tja + tji ]
 
 {-# INLINABLE triangleFactor #-}
 triangleFactor :: (Int, Int, Int) -> Rational
