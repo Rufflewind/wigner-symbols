@@ -3,7 +3,21 @@
 -- verification purposes.
 --
 -- http://www-stone.ch.cam.ac.uk/documentation/rrf
--- http://www-stone.ch.cam.ac.uk/pub/rrf-4.0.tgz
+--
+-- To run this, first run `tools/rrf-tabulate-build.sh`, which automatically
+-- downloads the RRF library and builds it using gfortran.  It also builds
+-- this program.
+--
+-- The RRF library is very picky about the number of primes it is initialized
+-- with.  If the number is too low it may *silently* give wrong results!  D:
+--
+-- For Wigner 6-j:
+--
+--   - up to j = 20/2, you need somewhere around (1e3, 1e4];
+--   - up to j = 25/2, you need somewhere around (1e4, 1e5].
+--
+-- There is also `maxStrLen`.  I've not yet found a need to increase it, but
+-- (according to the code) I believe it will at least crash if it's too small.
 --
 module Main (main) where
 import Data.Char (isDigit)
@@ -15,7 +29,8 @@ import Foreign
 import Foreign.C
 import Prelude hiding (pi)
 import System.Environment (getArgs)
-import System.IO (IOMode(WriteMode), hPutStrLn, withFile)
+import System.Exit (exitFailure)
+import System.IO (IOMode(WriteMode), hFlush, hPutStrLn, stderr, withFile)
 import Text.ParserCombinators.ReadP (ReadP)
 import qualified Text.ParserCombinators.ReadP as P
 import WignerSymbols.Internal
@@ -28,15 +43,7 @@ infixl 3 <++
 
 main :: IO ()
 main = do
-  args <- getArgs
-  let parsedArgs = case args of
-        [sym, sTjMax] -> (,) <$> readWignerSymbolType sym
-                             <*> runReadS' reads sTjMax
-        _             -> Nothing
-  (wignerSymbolType, tjMax) <- case parsedArgs of
-    Nothing -> ioError (userError "usage: rrf-tabulate w3j|w6j|w9j <tj-max>")
-    Just x  -> pure x
-
+  (wignerSymbolType, tjMax, numOfPrimes) <- parseArgs
   initRRFLib numOfPrimes
   rrf <- rrf_new maxStrLen
 
@@ -63,8 +70,24 @@ main = do
           write . intercalate "\t" $
             (show <$> tuple9ToList tjs) <> [r]
 
-  where numOfPrimes = 1000
-        maxStrLen   = 1024
+  where maxStrLen = 4096
+
+parseArgs :: IO (WignerSymbolType, Int, Int)
+parseArgs = do
+  parsedArgs <- parse <$> getArgs
+  case parsedArgs of
+    Just x  -> pure x
+    Nothing -> do
+      hPutStrLn stderr
+        "usage: rrf-tabulate w3j|w6j|w9j <tj-max> <num-of-primes>"
+      hFlush stderr
+      exitFailure
+  where
+    parse [sym, sTjMax, sNumOfPrimes] =
+      (,,) <$> readWignerSymbolType sym
+           <*> runReadS' reads sTjMax
+           <*> runReadS' reads sNumOfPrimes
+    parse _ = Nothing
 
 tabulate :: Int
          -> String
@@ -77,9 +100,7 @@ tabulate tjMax name compute = do
   where filename = "dist/rrf" <> name <> "-tj" <> show tjMax <> ".txt"
 
 renderRRF :: RRF -> IO String
-renderRRF rrf = do
---  rrf_show rrf
-  <$> rrf_read rrf
+renderRRF rrf = render <$> rrf_read rrf
   where render r = show (numerator r) <> "/" <> show (denominator r)
 
 withInt :: Int -> (Ptr CInt -> IO b) -> IO b

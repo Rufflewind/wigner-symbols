@@ -3,7 +3,7 @@ set -eu
 
 fcompile() {
     src=$1
-    printf "compiling ... %s\n" "$src"
+    printf "Compiling ... %s\n" "$src"
     gfortran -fPIC -g -fcheck=all -O2 -DGFORTRAN -o "$src.o" -c "$src"
 }
 
@@ -13,7 +13,7 @@ flinkshared() {
     major=$3
     rest=$4
     shift 4
-    printf "linking ... %s\n" "$dir/lib$name.so"
+    printf "Linking ... %s\n" "$dir/lib$name.so"
     mkdir -p "$dir"
     gfortran -fPIC -g -fcheck=all -shared "-Wl,-soname,lib$name.so.$major" \
         -o "$dir/lib$name.so.$major.$rest" "$@"
@@ -46,7 +46,7 @@ EOF
 }
 
 mkdir -p dist/tmp/bin
-printf "compiling ... %s\n" "dist/tmp/bin/rrf-tabulate"
+printf "Compiling ... %s\n" "dist/tmp/bin/rrf-tabulate"
 cabal exec -- \
     ghc -Wall -O -o dist/tmp/bin/rrf-tabulate tools/rrf-tabulate.hs \
         -Ldist/tmp/lib -lrrf
@@ -57,7 +57,10 @@ md5sum dist/rrf*.txt
 EOF
 chmod +x dist/tmp/bin/run-rrf-tabulate
 cat <<EOF
-done; to run the program, use:
+Compilation complete.
 
-    dist/tmp/bin/run-rrf-tabulate"
+To run the program, use:
+
+    dist/tmp/bin/run-rrf-tabulate
+
 EOF
