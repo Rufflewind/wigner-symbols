@@ -6,15 +6,17 @@ import Data.Functor ((<$>))
 #endif
 import Control.Monad.Primitive (PrimMonad, PrimState)
 import Control.Monad.ST (runST)
+import Data.Bits ((.&.), shiftL, shiftR, xor)
 import Data.Foldable (for_)
 import Data.Monoid ((<>))
 import Data.Vector (Vector)
 import Data.Vector.Generic (Mutable)
 import Data.Vector.Unboxed (Unbox)
+import Data.Word (Word64)
+import System.Random (randomRIO)
 import qualified Data.Vector.Generic as Vector
 import qualified Data.Vector.Generic.Mutable as MVector
 import qualified Data.Vector.Unboxed as Vector_Unboxed
-import System.Random (randomRIO)
 import Criterion.Main
 import WignerSymbols
 import WignerSymbols.Internal
@@ -37,9 +39,12 @@ main =
     ]
   , envTable 20 getTable6tjs $ \ t ->
     bgroup "w6j" (benchPart 5 t wigner6jSq)
+  , envTable 10 getTable9tjs $ \ t ->
+    bgroup "w9j" (benchPart 2 t (wigner9jSq . unpack9))
   , bench "cg.tj=8" (whnf clebschGordanSq (8, 0, 8, 0, 8, 0))
   , bench "cg.tj=100" (whnf clebschGordanSq (100, 0, 100, 0, 100, 0))
-  , bench "w6j.tj=8" (whnf wigner6jSq (10, 10, 10, 10, 10, 10))
+  , bench "w6j.tj=8" (whnf wigner6jSq (8, 8, 8, 8, 8, 8))
+  , bench "w9j.tj=8" (whnf wigner9jSq (8, 8, 8, 8, 8, 8, 8, 8, 8))
   ]
 
 ------------------------------------------------------------------------------
@@ -119,7 +124,34 @@ gmv_unsafeFreeze (len, v) = Vector.unsafeFreeze (MVector.slice 0 len v)
 
 ------------------------------------------------------------------------------
 
-type SixTk = (Int, Int, Int, Int, Int, Int)
+type SixTk  = (Int, Int, Int, Int, Int, Int)
+type NineTk = (Int, Int, Int, Int, Int, Int, Int, Int, Int)
+type NineTkPacked = Word64
+
+pack9 :: NineTk -> NineTkPacked
+pack9 (a, b, c, d, e, f, g, h, i) =
+  fromIntegral (shiftL a (7 * 8)) `xor`
+  fromIntegral (shiftL b (7 * 7)) `xor`
+  fromIntegral (shiftL c (7 * 6)) `xor`
+  fromIntegral (shiftL d (7 * 5)) `xor`
+  fromIntegral (shiftL e (7 * 4)) `xor`
+  fromIntegral (shiftL f (7 * 3)) `xor`
+  fromIntegral (shiftL g (7 * 2)) `xor`
+  fromIntegral (shiftL h (7 * 1)) `xor`
+  fromIntegral (shiftL i (7 * 0))
+
+unpack9 :: NineTkPacked -> NineTk
+unpack9 z =
+  ( fromIntegral (shiftR z (7 * 8) .&. 0x7f)
+  , fromIntegral (shiftR z (7 * 7) .&. 0x7f)
+  , fromIntegral (shiftR z (7 * 6) .&. 0x7f)
+  , fromIntegral (shiftR z (7 * 5) .&. 0x7f)
+  , fromIntegral (shiftR z (7 * 4) .&. 0x7f)
+  , fromIntegral (shiftR z (7 * 3) .&. 0x7f)
+  , fromIntegral (shiftR z (7 * 2) .&. 0x7f)
+  , fromIntegral (shiftR z (7 * 1) .&. 0x7f)
+  , fromIntegral (shiftR z (7 * 0) .&. 0x7f)
+  )
 
 flippedClebschGordan :: SixTk -> Double
 flippedClebschGordan (tj1, tm1, tj2, tm2, tj3, tm3) =
@@ -128,18 +160,22 @@ flippedClebschGordan (tj1, tm1, tj2, tm2, tj3, tm3) =
 getTable3tjms :: Int -> Partition SixTk
 getTable3tjms tableTjMax =
   categorize (tableTjMax + 1) (get3tjms tableTjMax) $
-  \ (tj1, _, tj2, _, tj3, _) ->
-    maximum [tj1, tj2, tj3]
+  \ (tj1, _, tj2, _, tj3, _) -> maximum [tj1, tj2, tj3]
 
 getTable6tjs :: Int -> Partition SixTk
 getTable6tjs tableTjMax =
-  categorize (tableTjMax + 1) (get6tjs tableTjMax) $
-  \ (tj1, tj2, tj3, tj4, tj5, tj6) ->
-    maximum [tj1, tj2, tj3, tj4, tj5, tj6]
+  categorize (tableTjMax + 1) (get6tjs tableTjMax)
+             (maximum . tuple6ToList)
 
-envTable :: Int
-         -> (Int -> Partition SixTk)
-         -> ((Int, Partition SixTk) -> Benchmark)
+getTable9tjs :: Int -> Partition NineTkPacked
+getTable9tjs tableTjMax =
+  categorize (tableTjMax + 1) (pack9 <$> get9tjs tableTjMax)
+             (maximum . tuple9ToList . unpack9)
+
+envTable :: Unbox a =>
+            Int
+         -> (Int -> Partition a)
+         -> ((Int, Partition a) -> Benchmark)
          -> Benchmark
 envTable tableTjMax getTable benchmark =
   env (pure (getTable tableTjMax)) $
