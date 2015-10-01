@@ -218,6 +218,7 @@ def dump_w6j(tjmax):
 
 def dump_w9j(tjmax):
     # note: sympy's wigner_9j is buggy for half-integer arguments
+    #       (as of 0.7.6.1)
     import sympy.physics.wigner as spw
     for write in dump_output("symw9j", tjmax):
         for tjs in iter_9tjs(tjmax):
@@ -230,12 +231,15 @@ def main():
     # - Clesbch-Gordan coefficients take ~2min in our
     #   implementation, while sympy's will be ~10x slower
     # - sympy's wigner_6j is even slower (~8 hours)
+    # - sympy's wigner_9j is extremely slow; don't think tjmax = 25 is
+    #   possible in a reasonable timeframe
     #
     tjmax = 25
     use_sympy = False
 
     dump_cg(tjmax, use_sympy)
     dump_w6j(tjmax)
+    #dump_w9j(tjmax)
 
 if __name__ == "__main__":
     main()
