@@ -4,7 +4,7 @@ set -eu
 fcompile() {
     src=$1
     printf "compiling ... %s\n" "$src"
-    f95 -fPIC -O3 -mtune=native -DGFORTRAN -o "$src.o" -c "$src"
+    gfortran -fPIC -g -fcheck=all -O2 -DGFORTRAN -o "$src.o" -c "$src"
 }
 
 flinkshared() {
@@ -15,7 +15,7 @@ flinkshared() {
     shift 4
     printf "linking ... %s\n" "$dir/lib$name.so"
     mkdir -p "$dir"
-    f95 -fPIC -shared "-Wl,-soname,lib$name.so.$major" \
+    gfortran -fPIC -g -fcheck=all -shared "-Wl,-soname,lib$name.so.$major" \
         -o "$dir/lib$name.so.$major.$rest" "$@"
     ln -fs "lib$name.so.$major.$rest" "$dir/lib$name.so.$major"
     ln -fs "lib$name.so.$major" "$dir/lib$name.so"
@@ -36,7 +36,8 @@ EOF
 [ -d dist/tmp/rrf-4.0 ] ||
     getrrf dist/tmp
 
-[ -f dist/tmp/lib/librrf.so ] || {
+[ -f dist/tmp/lib/librrf.so ] ||
+{
     fcompile dist/tmp/rrf-4.0/src/rrf_module.F90
     fcompile dist/tmp/rrf-4.0/src/wigner.F90
     flinkshared dist/tmp/lib rrf 4 1 \
@@ -45,8 +46,18 @@ EOF
 }
 
 mkdir -p dist/tmp/bin
+printf "compiling ... %s\n" "dist/tmp/bin/rrf-tabulate"
 cabal exec -- \
     ghc -Wall -O -o dist/tmp/bin/rrf-tabulate tools/rrf-tabulate.hs \
         -Ldist/tmp/lib -lrrf
-LD_LIBRARY_PATH=dist/tmp/lib dist/tmp/bin/rrf-tabulate
+cat >dist/tmp/bin/run-rrf-tabulate <<"EOF"
+#!/bin/sh
+LD_LIBRARY_PATH=dist/tmp/lib dist/tmp/bin/rrf-tabulate "$@"
 md5sum dist/rrf*.txt
+EOF
+chmod +x dist/tmp/bin/run-rrf-tabulate
+cat <<EOF
+done; to run the program, use:
+
+    dist/tmp/bin/run-rrf-tabulate"
+EOF
