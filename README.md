@@ -1,5 +1,9 @@
-`wigner-symbols`
-================
+`wigner-symbols` [![Build status][ci]][ca]
+==========================================
+
+**Quick links**:
+  [changelog][cl],
+  [documentation][dc].
 
 This library calculates:
 
@@ -26,3 +30,17 @@ where
   - `s` is a sign (either `+`, `-`, or `0`),
   - `n` is a nonnegative numerator, and
   - `d` is a positive denominator.
+
+Installation
+------------
+
+The package is available on [Hackage][dc]:
+
+```sh
+cabal install wigner-symbols
+```
+
+[cl]: changelog.md
+[ca]: https://travis-ci.org/Rufflewind/wigner-symbols
+[ci]: https://travis-ci.org/Rufflewind/wigner-symbols.svg?branch=master
+[dc]: https://hackage.haskell.org/package/wigner-symbols
