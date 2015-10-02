@@ -1,0 +1,54 @@
+# generic
+.\#*
+.nfs????
+dist/
+*~
+*.log
+*.tmp
+
+# native
+a.out
+*.a
+*.dll
+*.dylib
+*.exe
+*.gch
+*.ipch
+*.lib
+*.o
+*.obj
+*.so
+*.sdf
+*.stackdump
+
+# Fortran
+*.mod
+
+# Haskell
+.cabal-sandbox/
+cabal.config
+cabal.sandbox.config
+*.chi
+*.hcr
+*.hi
+
+# JavaScript
+node_modules/
+
+# Python
+MANIFEST
+__pycache__
+*.pyc
+
+# TeX
+*.aux
+*.bbl
+*.blg
+*.thm
+*.toc
+*Notes.bib
+
+# web
+.sass-cache
+*.css.map
+*.js.map
