@@ -16,6 +16,7 @@ cabal-version:       >=1.10
 
 extra-source-files:
   changelog.md
+  LICENSE
   README.md
 
 source-repository head
