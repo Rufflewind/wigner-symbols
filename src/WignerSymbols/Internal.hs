@@ -1,6 +1,4 @@
--- TODO: Remove NMR later
 {-# LANGUAGE BangPatterns, CPP #-}
-{-# LANGUAGE NoMonomorphismRestriction #-}
 module WignerSymbols.Internal where
 #if !MIN_VERSION_base(4, 8, 0)
 import Control.Applicative (pure)
