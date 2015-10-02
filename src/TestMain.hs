@@ -23,8 +23,8 @@ main = do
       let r = clebschGordanSq (tj1, tm1, tj2, tm2, tj3, -tm3) in
       write . intercalate "\t" $
         (show <$> [tj1, tm1, tj2, tm2, tj3, -tm3]) <>
-        "\t" <> show (ssr_signum r * ssr_numerator r) <>
-        "/" <> show (ssr_denominator r)
+        [show (ssr_signum r * ssr_numerator r) <>
+         "/" <> show (ssr_denominator r)]
 
   checkResults knownHashes_cg 5 "cgw" $ \ tjMax write ->
     for_ (get3tjms tjMax) $ \ (tj1, tm1, tj2, tm2, tj3, tm3) ->
@@ -32,26 +32,25 @@ main = do
           r = wr
             * (fromIntegral tj3 + 1)
             / (-1) ^^ ((tj1 - tj2 - tm3) `div` 2) in
-      write $
+      write . intercalate "\t" $
         (show <$> [tj1, tm1, tj2, tm2, tj3, -tm3]) <>
-        "\t" <> show (numerator r) <>
-        "/" <> show (denominator r)
+        [show (numerator r) <> "/" <> show (denominator r)]
 
   checkResults knownHashes_w6j 15 "w6j" $ \ tjMax write ->
     for_ (get6tjs tjMax) $ \ tjs ->
       let r = wigner6jSq tjs in
       write . intercalate "\t" $
         (show <$> tuple6ToList tjs) <>
-        "\t" <> show (ssr_signum r * ssr_numerator r) <>
-        "/" <> show (ssr_denominator r)
+        [show (ssr_signum r * ssr_numerator r) <>
+         "/" <> show (ssr_denominator r)]
 
   checkResults knownHashes_w9j 7 "w9j" $ \ tjMax write ->
     for_ (get9tjs tjMax) $ \ tjs ->
       let r = wigner9jSq tjs in
       write . intercalate "\t" $
         (show <$> tuple9ToList tjs) <>
-        "\t" <> show (ssr_signum r * ssr_numerator r) <>
-        "/" <> show (ssr_denominator r)
+        [show (ssr_signum r * ssr_numerator r) <>
+         "/" <> show (ssr_denominator r)]
 
 knownHashes_cg :: [(Int, String)]
 knownHashes_cg =
