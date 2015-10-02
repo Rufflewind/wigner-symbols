@@ -19,10 +19,10 @@ The library uses the Condon-Shortley phase convention as typical in physics.
 Each function has a `…Sq` variant that returns the exact value as a
 `SignedSqrtRational`, which represents a mathematical expression of the form:
 
-    s × √(n / d)
+    s √(n / d)
 
 where
 
-  - `s` is a sign (`+`, `-`, or `0`),
+  - `s` is a sign (either `+`, `-`, or `0`),
   - `n` is a nonnegative numerator, and
   - `d` is a positive denominator.
