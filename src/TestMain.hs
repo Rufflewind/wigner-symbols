@@ -6,11 +6,13 @@ import System.Exit (exitFailure)
 import System.IO (IOMode(WriteMode), hFlush, hPutStrLn,
                   stderr, stdout, withFile)
 import Crypto.Hash (Digest, MD5, hashlazy)
-import qualified Data.ByteString.Lazy as ByteStringL
+import qualified Data.ByteString.Lazy as ByteString_Lazy
 import Common
 import Prelude
 import WignerSymbols
 import WignerSymbols.Internal
+
+type ByteString_Lazy = ByteString_Lazy.ByteString
 
 main :: IO ()
 main = do
@@ -86,7 +88,7 @@ checkResults :: [(Int, String)]
 checkResults knownHashes tjMax name compute = do
   withFile filename WriteMode $ \ h ->
     compute tjMax (hPutStrLn h)
-  newHash <- hexMD5 <$> ByteStringL.readFile filename
+  newHash <- hexMD5 <$> ByteString_Lazy.readFile filename
   case lookup tjMax knownHashes of
     Nothing -> do
       hPutStrLn stderr (errorPrefix <> "no known hash available")
@@ -107,5 +109,5 @@ checkResults knownHashes tjMax name compute = do
         errorPrefix = "[\ESC[31;1merror\ESC[0m] "
         okPrefix = "[\ESC[32mok\ESC[0m] "
 
-hexMD5 :: ByteStringL.ByteString -> String
+hexMD5 :: ByteString_Lazy -> String
 hexMD5 s = show (hashlazy s :: Digest MD5)
