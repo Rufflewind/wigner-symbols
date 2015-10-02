@@ -114,12 +114,13 @@ clebschGordanSqSlow (tj1, tm1, tj2, tm2, tj12, tm12)
   where
 
     selectionRuleSatisfied =
-      triangleCondition (tj1, tj2, tj12) &&
       tm1 + tm2 == tm12 &&
-      (tj1 + tj2 + tj12) `rem` 2 == 0 &&
+      abs tm1 <= tj1 &&
+      abs tm2 <= tj2 &&
+      abs tm12 <= tj12 &&
       (tj1 + tm1) `rem` 2 == 0 &&
       (tj2 + tm2) `rem` 2 == 0 &&
-      (tj12 + tm12) `rem` 2 == 0
+      triangleCondition (tj1, tj2, tj12)
 
     tkmin = -minimum [0, tj12 - tj2 + tm1, tj12 - tj1 - tm2]
     tkmax = minimum [tj1 + tj2 - tj12, tj1 - tm1, tj2 + tm2]
