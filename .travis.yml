@@ -6,7 +6,6 @@ ghc:
   - 7.4
   - 7.0
 before_install:
-  - sudo apt-get update -qq
   - cabal update
 install:
   - cabal install --enable-tests --only-dependencies
