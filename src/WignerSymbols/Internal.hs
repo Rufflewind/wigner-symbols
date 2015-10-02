@@ -26,10 +26,11 @@ import Data.Ratio ((%), numerator, denominator)
 -- * @n@ is a nonnegative numerator, and
 -- * @d@ is a positive denominator.
 --
-newtype SignedSqrtRational = SignedSqrtRational Rational
-                           deriving Eq
+newtype SignedSqrtRational
+  = SignedSqrtRational Rational
+  deriving (Eq, Ord)
 
--- | *​*
+-- | / /
 instance Read SignedSqrtRational where
   readsPrec p =
     readParen (p >= 11) $ \ s1 -> do
@@ -37,7 +38,7 @@ instance Read SignedSqrtRational where
       (x, s3) <- readsPrec 11 s2
       pure (ssr_new x, s3)
 
--- | *​*
+-- | / /
 instance Show SignedSqrtRational where
   showsPrec p x =
     showParen (p >= 11) $
@@ -46,7 +47,7 @@ instance Show SignedSqrtRational where
 
 -- | Construct a 'SignedSqrtRational' equal to @c √r@.
 {-# INLINE ssr_new #-}
-ssr_new :: (Integer, Rational)          -- ^ ​@(c, r)@
+ssr_new :: (Integer, Rational)          -- ^ @(c, r)@ / /
         -> SignedSqrtRational
 ssr_new (c, r) = SignedSqrtRational (signum c % 1 * r * (c ^ (2 :: Int) % 1))
 
@@ -86,14 +87,14 @@ ssr_approx x =
 -- @
 {-# INLINABLE clebschGordan #-}
 clebschGordan :: (Int, Int, Int, Int, Int, Int)
-              -- ^ ​@(tj1, tm1, tj2, tm2, tj12, tm12)@
+              -- ^ @(tj1, tm1, tj2, tm2, tj12, tm12)@ / /
               -> Double
 clebschGordan = ssr_approx . clebschGordanSq
 
 -- | Similar to 'clebschGordan' but exact.
 {-# INLINABLE clebschGordanSq #-}
 clebschGordanSq :: (Int, Int, Int, Int, Int, Int)
-                -- ^ ​@(tj1, tm1, tj2, tm2, tj12, tm12)@
+                -- ^ @(tj1, tm1, tj2, tm2, tj12, tm12)@ / /
                 -> SignedSqrtRational
 clebschGordanSq (tj1, tm1, tj2, tm2, tj12, tm12) =
   SignedSqrtRational (z * fromIntegral (tj12 + 1))
@@ -108,8 +109,8 @@ clebschGordanSq (tj1, tm1, tj2, tm2, tj12, tm12) =
 {-# INLINABLE clebschGordanSqSlow #-}
 clebschGordanSqSlow :: (Int, Int, Int, Int, Int, Int) -> SignedSqrtRational
 clebschGordanSqSlow (tj1, tm1, tj2, tm2, tj12, tm12)
-  | selectionRuleSatisfied = SignedSqrtRational (sign * surd)
-  | otherwise              = SignedSqrtRational 0
+  | selectionRuleSatisfied = ssr_new (numerator (signum c), r * c ^ (2 :: Int))
+  | otherwise              = ssr_new (0, 0)
   where
 
     selectionRuleSatisfied =
@@ -125,7 +126,7 @@ clebschGordanSqSlow (tj1, tm1, tj2, tm2, tj12, tm12)
 
     facHalf n = factorial (n `quot` 2)
 
-    r = sum [ toInteger (minusOnePow (tk `quot` 2))
+    c = sum [ toInteger (minusOnePow (tk `quot` 2))
               % ( facHalf tk
                 * facHalf (tj1 + tj2 - tj12 - tk)
                 * facHalf (tj1 - tm1 - tk)
@@ -134,22 +135,17 @@ clebschGordanSqSlow (tj1, tm1, tj2, tm2, tj12, tm12)
                 * facHalf (tj12 - tj1 - tm2 + tk) )
             | tk <- [tkmin, tkmin + 2 .. tkmax] ]
 
-    sign = fromIntegral (numerator (signum r))
-    surd | r == 0    = 0
-         | otherwise = q
-
-    q = ( ( toInteger (tj12 + 1)
-          * facHalf(tj12 + tj1 - tj2)
-          * facHalf(tj12 - tj1 + tj2)
-          * facHalf(tj1 + tj2 - tj12)
-          * facHalf(tj12 + tm12)
-          * facHalf(tj12 - tm12)
-          * facHalf(tj1 - tm1)
-          * facHalf(tj1 + tm1)
-          * facHalf(tj2 - tm2)
-          * facHalf(tj2 + tm2)
-          ) % facHalf(tj1 + tj2 + tj12 + 2)
-        ) * r ^ (2 :: Int)
+    r = ( toInteger (tj12 + 1)
+        * facHalf(tj12 + tj1 - tj2)
+        * facHalf(tj12 - tj1 + tj2)
+        * facHalf(tj1 + tj2 - tj12)
+        * facHalf(tj12 + tm12)
+        * facHalf(tj12 - tm12)
+        * facHalf(tj1 - tm1)
+        * facHalf(tj1 + tm1)
+        * facHalf(tj2 - tm2)
+        * facHalf(tj2 + tm2)
+        ) % facHalf(tj1 + tj2 + tj12 + 2)
 
 -- | Calculate a Wigner 3-j symbol:
 --
@@ -159,14 +155,14 @@ clebschGordanSqSlow (tj1, tm1, tj2, tm2, tj12, tm12)
 -- @
 {-# INLINABLE wigner3j #-}
 wigner3j :: (Int, Int, Int, Int, Int, Int)
-         -- ^ ​@(tj1, tm1, tj2, tm2, tj3, tm3)@
+         -- ^ @(tj1, tm1, tj2, tm2, tj3, tm3)@ / /
          -> Double
 wigner3j = ssr_approx . wigner3jSq
 
 -- | Similar to 'wigner3j' but exact.
 {-# INLINABLE wigner3jSq #-}
 wigner3jSq :: (Int, Int, Int, Int, Int, Int)
-           -- ^ ​@(tj1, tm1, tj2, tm2, tj3, tm3)@
+           -- ^ @(tj1, tm1, tj2, tm2, tj3, tm3)@ / /
            -> SignedSqrtRational
 wigner3jSq (tj1, tm1, tj2, tm2, tj3, tm3) = SignedSqrtRational (s * z)
   where s = fromIntegral (minusOnePow ((tj1 - tj2 - tm3) `quot` 2))
@@ -174,7 +170,9 @@ wigner3jSq (tj1, tm1, tj2, tm2, tj3, tm3) = SignedSqrtRational (s * z)
 
 -- | Calculate the Wigner 3-j symbol times @(−1) ^ (j1 − j2 − m3)@.
 {-# INLINABLE wigner3jSqRawC #-}
-wigner3jSqRawC :: (Int, Int, Int, Int, Int, Int) -> SignedSqrtRational
+wigner3jSqRawC :: (Int, Int, Int, Int, Int, Int)
+               -- ^ @(tj1, tm1, tj2, tm2, tj3, tm3)@ / /
+               -> SignedSqrtRational
 wigner3jSqRawC tjms@(tj1, tm1, tj2, tm2, tj3, tm3) =
   if tm1 + tm2 + tm3 == 0 &&
      abs tm1 <= tj1 &&
@@ -184,7 +182,7 @@ wigner3jSqRawC tjms@(tj1, tm1, tj2, tm2, tj3, tm3) =
      jmr2 == 0 &&
      triangleCondition (tj1, tj2, tj3)
   then wigner3jSqRaw (jm1, jm2) tjms
-  else SignedSqrtRational 0
+  else ssr_new (0, 0)
   where
     (!jm1, !jmr1) = (tj1 + tm1) `quotRem` 2
     (!jm2, !jmr2) = (tj2 + tm2) `quotRem` 2
@@ -193,7 +191,9 @@ wigner3jSqRawC tjms@(tj1, tm1, tj2, tm2, tj3, tm3) =
 --   The selection rules are not checked.
 {-# INLINE wigner3jSqRaw #-}
 wigner3jSqRaw :: (Int, Int)
+              -- ^ @(j1 + m1, j2 + m2)@ / /
               -> (Int, Int, Int, Int, Int, Int)
+              -- ^ @(tj1, tm1, tj2, tm2, tj3, tm3)@ / /
               -> SignedSqrtRational
 wigner3jSqRaw (jm1, jm2) (tj1, tm1, tj2, tm2, tj3, tm3) = ssr_new (z2, z1)
   where
@@ -237,24 +237,28 @@ wigner3jSqRaw (jm1, jm2) (tj1, tm1, tj2, tm2, tj3, tm3) = ssr_new (z2, z1)
 -- @
 {-# INLINABLE wigner6j #-}
 wigner6j :: (Int, Int, Int, Int, Int, Int)
-         -- ^ ​@(tj11, tj12, tj13, tj21, tj22, tj23)@
+         -- ^ @(tj11, tj12, tj13, tj21, tj22, tj23)@ / /
          -> Double
 wigner6j = ssr_approx . wigner6jSq
 
 -- | Similar to 'wigner6j' but exact.
 {-# INLINABLE wigner6jSq #-}
-wigner6jSq :: (Int, Int, Int, Int, Int, Int) -> SignedSqrtRational
+wigner6jSq :: (Int, Int, Int, Int, Int, Int)
+           -- ^ @(tj11, tj12, tj13, tj21, tj22, tj23)@ / /
+           -> SignedSqrtRational
 wigner6jSq tjs@(tja, tjb, tjc, tjd, tje, tjf) =
   if triangleCondition (tja, tjb, tjc) &&
      triangleCondition (tja, tje, tjf) &&
      triangleCondition (tjd, tjb, tjf) &&
      triangleCondition (tjd, tje, tjc)
   then wigner6jSqRaw tjs
-  else SignedSqrtRational 0
+  else ssr_new (0, 0)
 
 -- | Calculate the Wigner 6-j symbol.  The selection rules are not checked.
 {-# INLINE wigner6jSqRaw #-}
-wigner6jSqRaw :: (Int, Int, Int, Int, Int, Int) -> SignedSqrtRational
+wigner6jSqRaw :: (Int, Int, Int, Int, Int, Int)
+              -- ^ @(tj11, tj12, tj13, tj21, tj22, tj23)@ / /
+              -> SignedSqrtRational
 wigner6jSqRaw (tja, tjb, tjc, tjd, tje, tjf) = ssr_new (z2, z1)
   where
 
@@ -274,14 +278,14 @@ wigner6jSqRaw (tja, tjb, tjc, tjd, tje, tjf) = ssr_new (z2, z1)
 -- @
 {-# INLINABLE wigner9j #-}
 wigner9j :: (Int, Int, Int, Int, Int, Int, Int, Int, Int)
-         -- ^ ​@(tj11, tj12, tj13, tj21, tj22, tj23, tj31, tj32, tj33)@
+         -- ^ @(tj11, tj12, tj13, tj21, tj22, tj23, tj31, tj32, tj33)@ / /
          -> Double
 wigner9j = ssr_approx . wigner9jSq
 
 -- | Similar to 'wigner9j' but exact.
 {-# INLINABLE wigner9jSq #-}
 wigner9jSq :: (Int, Int, Int, Int, Int, Int, Int, Int, Int)
-           -- ^ ​@(tj11, tj12, tj13, tj21, tj22, tj23, tj31, tj32, tj33)@
+           -- ^ @(tj11, tj12, tj13, tj21, tj22, tj23, tj31, tj32, tj33)@ / /
            -> SignedSqrtRational
 wigner9jSq tjs@(tja, tjb, tjc, tjd, tje, tjf, tjg, tjh, tji) =
   if triangleCondition (tja, tjb, tjc) &&
@@ -291,11 +295,12 @@ wigner9jSq tjs@(tja, tjb, tjc, tjd, tje, tjf, tjg, tjh, tji) =
      triangleCondition (tjb, tje, tjh) &&
      triangleCondition (tjc, tjf, tji)
   then wigner9jSqRaw tjs
-  else SignedSqrtRational 0
+  else ssr_new (0, 0)
 
 -- | Calculate the Wigner 9-j symbol.  The selection rules are not checked.
 {-# INLINE wigner9jSqRaw #-}
 wigner9jSqRaw :: (Int, Int, Int, Int, Int, Int, Int, Int, Int)
+              -- ^ @(tj11, tj12, tj13, tj21, tj22, tj23, tj31, tj32, tj33)@ / /
               -> SignedSqrtRational
 wigner9jSqRaw (tja, tjb, tjc, tjd, tje, tjf, tjg, tjh, tji) = ssr_new (z2, z1)
   where
@@ -331,7 +336,7 @@ wigner9jSqRaw (tja, tjb, tjc, tjd, tje, tjf, tjg, tjh, tji) = ssr_new (z2, z1)
 
 -- | Calculate the factorial @n!@.
 {-# INLINABLE factorial #-}
-factorial :: Int                        -- ^ ​@n@
+factorial :: Int                        -- ^ @n@ / /
           -> Integer
 factorial = go 1
   where go r n
@@ -343,8 +348,8 @@ factorial = go 1
 
 -- | Calculate the falling factorial, i.e. the product of the integers @[n, k)@.
 {-# INLINABLE fallingFactorial #-}
-fallingFactorial :: Int                 -- ^ ​@n@
-                 -> Int                 -- ^ ​@k@
+fallingFactorial :: Int                 -- ^ @n@ / /
+                 -> Int                 -- ^ @k@ / /
                  -> Integer
 fallingFactorial = go 1 1
   where go r i n k
@@ -357,8 +362,8 @@ fallingFactorial = go 1 1
 
 -- | Calculate the binomial coefficient @C(n, k)@.
 {-# INLINABLE binomial #-}
-binomial :: Int                         -- ^ ​@n@
-         -> Int                         -- ^ ​@k@
+binomial :: Int                         -- ^ @n@ / /
+         -> Int                         -- ^ @k@ / /
          -> Integer
 binomial = go 1 1
   where go r i n k
@@ -371,7 +376,7 @@ binomial = go 1 1
 
 -- | Calculate @(−1) ^ n@.
 {-# INLINABLE minusOnePow #-}
-minusOnePow :: Int                      -- ^ ​@n@
+minusOnePow :: Int                      -- ^ @n@ / /
             -> Int
 minusOnePow n = 1 - n `mod` 2 * 2
 
@@ -390,7 +395,7 @@ triangleCondition (a, b, c) = d >= 0 && d `rem` 2 == 0 && c - abs (a - b) >= 0
 -- @
 --
 {-# INLINABLE triangularFactor #-}
-triangularFactor :: (Int, Int, Int)     -- ^ ​@(tj1, tj2, tj3)@
+triangularFactor :: (Int, Int, Int)     -- ^ @(tj1, tj2, tj3)@ / /
                  -> Rational
 triangularFactor (tja, tjb, tjc) = triangularFactorRaw jjj (jjja, jjjb, jjjc)
   where !jjja = (tjc - tja + tjb) `quot` 2
@@ -400,8 +405,8 @@ triangularFactor (tja, tjb, tjc) = triangularFactorRaw jjj (jjja, jjjb, jjjc)
 
 -- | Calculate @ja! jb! jc! / jd!@.
 {-# INLINABLE triangularFactorRaw #-}
-triangularFactorRaw :: Int              -- ^ ​@jd@
-                    -> (Int, Int, Int)  -- ^ ​@(ja, jb, jc)@
+triangularFactorRaw :: Int              -- ^ @jd@ / /
+                    -> (Int, Int, Int)  -- ^ @(ja, jb, jc)@ / /
                     -> Rational
 triangularFactorRaw jjj (jjja, jjjb, jjjc) =
   factorial jjju * factorial jjjv % fallingFactorial jjj (jjj - jjjw)
@@ -420,7 +425,7 @@ triangularFactorRaw jjj (jjja, jjjb, jjjc) =
 --
 {-# INLINABLE tetrahedralSum #-}
 tetrahedralSum :: (Int, Int, Int, Int, Int, Int)
-               -- ^ ​@(tj11, tj12, tj13, tj21, tj22, tj23)@
+               -- ^ @(tj11, tj12, tj13, tj21, tj22, tj23)@ / /
                -> Integer
 tetrahedralSum (tja, tje, tjf, tjd, tjb, tjc) =
   sum [ toInteger (minusOnePow k)
@@ -451,8 +456,8 @@ tetrahedralSum (tja, tje, tjf, tjd, tjb, tjc) =
 -- | Get all angular momenta that satisfy the triangle condition with the
 --   given pair of angular momenta, up to a maximum of @jmax@.
 {-# INLINABLE getTriangularTjs #-}
-getTriangularTjs :: Int                 -- ^ ​@tjmax@
-                 -> (Int, Int)          -- ^ ​@(tj1, tj2)@
+getTriangularTjs :: Int                 -- ^ @tjmax@ / /
+                 -> (Int, Int)          -- ^ @(tj1, tj2)@ / /
                  -> [Int]
 getTriangularTjs tjMax (tja, tjb) = [tjmin, tjmin + 2 .. tjmax]
   where tjmin = abs (tja - tjb)
@@ -461,9 +466,9 @@ getTriangularTjs tjMax (tja, tjb) = [tjmin, tjmin + 2 .. tjmax]
 -- | Get all angular momenta that satisfy the triangle condition with each of
 --   the given two pairs of angular momenta, up to a maximum of @jmax@.
 {-# INLINABLE getBitriangularTjs #-}
-getBitriangularTjs :: Int   -- ^ ​@tjmax@
+getBitriangularTjs :: Int   -- ^ @tjmax@ / /
                    -> ((Int, Int), (Int, Int))
-                   -- ^ ​@((tj11, tj12), (tj21, tj22))@
+                   -- ^ @((tj11, tj12), (tj21, tj22))@ / /
                    -> [Int]
 getBitriangularTjs tjMax ((tja, tjb), (tjc, tjd)) = [tjmin, tjmin + 2 .. tjmax]
   where tjmin = max (abs (tja - tjb)) (abs (tjc - tjd))
@@ -471,14 +476,14 @@ getBitriangularTjs tjMax ((tja, tjb), (tjc, tjd)) = [tjmin, tjmin + 2 .. tjmax]
 
 -- | Get all projection quantum numbers that lie within the multiplet of @j@.
 {-# INLINABLE getTms #-}
-getTms :: Int                           -- ^ ​@tj@
+getTms :: Int                           -- ^ @tj@ / /
        -> [Int]
 getTms tj = [-tj, -tj + 2 .. tj]
 
 -- | Get all possible arguments of the Wigner 3-j symbol that satisfy the
 --   selection rules up to a maximum of @jmax@.
 {-# INLINABLE get3tjms #-}
-get3tjms :: Int                         -- ^ ​@tjmax@
+get3tjms :: Int                         -- ^ @tjmax@ / /
          -> [(Int, Int, Int, Int, Int, Int)]
 get3tjms tjMax = do
   tj1 <- [0 .. tjMax]

@@ -18,6 +18,10 @@ source-repository head
   type:                git
   location:            https://github.com/Rufflewind/wigner-symbols
 
+extra-source-files:
+  changelog.md
+  README
+
 flag llvm
   description:         Use LLVM
   default:             False
