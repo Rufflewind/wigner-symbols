@@ -28,7 +28,7 @@ main = do
 
   checkResults knownHashes_cg 5 "cgw" $ \ tjMax write ->
     for_ (get3tjms tjMax) $ \ (tj1, tm1, tj2, tm2, tj3, tm3) ->
-      let SignedSqrtRatio wr = wigner3jSq (tj1, tm1, tj2, tm2, tj3, tm3)
+      let SignedSqrtRational wr = wigner3jSq (tj1, tm1, tj2, tm2, tj3, tm3)
           r = wr
             * (fromIntegral tj3 + 1)
             / (-1) ^^ ((tj1 - tj2 - tm3) `div` 2) in
