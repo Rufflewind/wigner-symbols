@@ -2,15 +2,14 @@
 --
 -- /Functions in this module are subject to change without notice./
 --
-{-# LANGUAGE BangPatterns, CPP #-}
+{-# LANGUAGE BangPatterns #-}
 module WignerSymbols.Internal where
-#if !MIN_VERSION_base(4, 8, 0)
-import Control.Applicative (pure)
-#endif
 import Control.Monad (guard)
 import Data.List (sort)
 import Data.Foldable (foldl')
 import Data.Ratio ((%), numerator, denominator)
+import Common
+import Prelude
 
 ------------------------------------------------------------------------------
 

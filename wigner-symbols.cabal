@@ -29,9 +29,10 @@ flag llvm
 library
   exposed-modules:     WignerSymbols
                        WignerSymbols.Internal
+  other-modules:       Common
   other-extensions:    BangPatterns
                        CPP
-  build-depends:       base >=4.5 && <5
+  build-depends:       base >=4 && <5
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall
@@ -41,6 +42,7 @@ library
 test-suite test
   type:                exitcode-stdio-1.0
   main-is:             TestMain.hs
+  other-modules:       Common
   other-extensions:    CPP
   build-depends:       base
                      , wigner-symbols
@@ -53,6 +55,7 @@ test-suite test
 benchmark bench
   type:                exitcode-stdio-1.0
   main-is:             BenchMain.hs
+  other-modules:       Common
   other-extensions:    BangPatterns
                        CPP
                        ScopedTypeVariables

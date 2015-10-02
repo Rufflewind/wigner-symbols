@@ -1,17 +1,14 @@
-{-# LANGUAGE CPP #-}
 module Main (main) where
-#if !MIN_VERSION_base(4, 8, 0)
-import Data.Functor ((<$>))
-#endif
 import Data.Foldable (for_)
 import Data.List (intercalate)
-import Data.Monoid ((<>))
 import Data.Ratio (denominator, numerator)
 import System.Exit (exitFailure)
 import System.IO (IOMode(WriteMode), hFlush, hPutStrLn,
                   stderr, stdout, withFile)
 import Crypto.Hash (Digest, MD5, hashlazy)
 import qualified Data.ByteString.Lazy as ByteStringL
+import Common
+import Prelude
 import WignerSymbols
 import WignerSymbols.Internal
 

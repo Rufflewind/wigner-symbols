@@ -1,14 +1,9 @@
-{-# LANGUAGE BangPatterns, CPP, ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns, ScopedTypeVariables #-}
 module Main (main) where
-#if !MIN_VERSION_base(4, 8, 0)
-import Control.Applicative (pure)
-import Data.Functor ((<$>))
-#endif
 import Control.Monad.Primitive (PrimMonad, PrimState)
 import Control.Monad.ST (runST)
 import Data.Bits ((.&.), shiftL, shiftR, xor)
 import Data.Foldable (for_)
-import Data.Monoid ((<>))
 import Data.Vector (Vector)
 import Data.Vector.Generic (Mutable)
 import Data.Vector.Unboxed (Unbox)
@@ -18,6 +13,8 @@ import qualified Data.Vector.Generic as Vector
 import qualified Data.Vector.Generic.Mutable as MVector
 import qualified Data.Vector.Unboxed as Vector_Unboxed
 import Criterion.Main
+import Common
+import Prelude
 import WignerSymbols
 import WignerSymbols.Internal
 
