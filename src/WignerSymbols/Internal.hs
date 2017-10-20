@@ -346,7 +346,8 @@ factorial = go 1
                   !n' = n - 1
               in go r' n'
 
--- | Calculate the falling factorial, i.e. the product of the integers @[n, k)@.
+-- | Calculate the falling factorial, i.e. the product of the integers
+-- @[n, n - k)@.
 {-# INLINABLE fallingFactorial #-}
 fallingFactorial :: Int                 -- ^ @n@ / /
                  -> Int                 -- ^ @k@ / /
