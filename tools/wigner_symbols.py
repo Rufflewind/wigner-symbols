@@ -231,8 +231,8 @@ def main():
     # - Clesbch-Gordan coefficients take ~2min in our
     #   implementation, while sympy's will be ~10x slower
     # - sympy's wigner_6j is even slower (~8 hours)
-    # - sympy's wigner_9j is extremely slow; don't think tjmax = 25 is
-    #   possible in a reasonable timeframe
+    # - sympy's wigner_9j is extremely slow; tjmax = 10 takes 26 hours;
+    #   don't think tjmax = 25 is possible in a reasonable timeframe
     #
     tjmax = 25
     use_sympy = False
