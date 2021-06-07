@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns, CPP, ScopedTypeVariables #-}
 module Main (main) where
 import Control.Monad.Primitive (PrimMonad, PrimState)
 import Control.Monad.ST (runST)
@@ -14,9 +14,17 @@ import qualified Data.Vector.Generic.Mutable as MVector
 import qualified Data.Vector.Unboxed as Vector_Unboxed
 import Criterion.Main
 import Common
+#if !MIN_VERSION_base(4, 8, 0)
+  hiding (pure)
+#endif
 import Prelude
 import WignerSymbols
 import WignerSymbols.Internal
+
+#if !MIN_VERSION_base(4, 8, 0)
+pure :: Monad m => a -> m a
+pure = return
+#endif
 
 type Vector_Unboxed a = Vector_Unboxed.Vector a
 

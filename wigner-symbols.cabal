@@ -49,6 +49,7 @@ test-suite test
                      , wigner-symbols
                      , bytestring >= 0.10 && <1
                      , cryptonite >=0.7 && <1
+                     , directory >=1.0 && <2
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall

@@ -1,0 +1,31 @@
+name: build
+on:
+  pull_request:
+  push:
+  schedule:
+    - cron: 12 20 3 * *
+  workflow_dispatch:
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        ghc:
+          - 7.6.3
+          - 7.8.4
+          - 8.2.2
+    runs-on: ubuntu-18.04
+    steps:
+      - run: |
+          sudo add-apt-repository ppa:hvr/ghc
+          sudo apt-get update
+      - uses: haskell/actions/setup@v1
+        with:
+          ghc-version: ${{ matrix.ghc }}
+      - uses: actions/checkout@v2
+      - run: cabal check
+      - run: |
+          cabal v2-sdist -o - | tar xz
+          mv "$(cabal info . | cut -d ' ' -f 2 | head -n 1)" sdist
+      - run: cd sdist && cabal v2-build --enable-benchmark --enable-tests
+      - run: cd sdist && cabal v2-test --test-show-details streaming

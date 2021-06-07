@@ -2,6 +2,7 @@ module Main (main) where
 import Data.Foldable (for_)
 import Data.List (intercalate)
 import Data.Ratio (denominator, numerator)
+import System.Directory (createDirectoryIfMissing)
 import System.Exit (exitFailure)
 import System.IO (IOMode(WriteMode), hFlush, hPutStrLn,
                   stderr, stdout, withFile)
@@ -86,6 +87,7 @@ checkResults :: [(Int, String)]
              -> (Int -> (String -> IO ()) -> IO ())
              -> IO ()
 checkResults knownHashes tjMax name compute = do
+  createDirectoryIfMissing True "dist"
   withFile filename WriteMode $ \ h ->
     compute tjMax (hPutStrLn h)
   newHash <- hexMD5 <$> ByteString_Lazy.readFile filename

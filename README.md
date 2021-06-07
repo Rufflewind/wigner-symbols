@@ -41,6 +41,6 @@ cabal install wigner-symbols
 ```
 
 [cl]: changelog.md
-[ca]: https://travis-ci.org/Rufflewind/wigner-symbols
-[ci]: https://travis-ci.org/Rufflewind/wigner-symbols.svg?branch=master
+[ca]: https://github.com/Rufflewind/wigner-symbols/actions/workflows/build.yml
+[ci]: https://github.com/Rufflewind/wigner-symbols/actions/workflows/build.yml/badge.svg
 [dc]: https://hackage.haskell.org/package/wigner-symbols
